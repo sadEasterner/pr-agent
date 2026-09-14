@@ -1,0 +1,175 @@
+pr_rules:
+  require_description: true
+  min_description_length: 20
+  max_changed_lines: 500
+  max_changed_files: 40
+
+  dangerous_paths:
+    - ".github/**"
+    - ".gitea/**"
+    - "docker-compose*.yml"
+    - "Dockerfile*"
+    - "infra/**"
+    - "deploy/**"
+    - "k8s/**"
+    - "terraform/**"
+    - ".env*"
+    - "secrets/**"
+
+  migration_paths:
+    - "database/**"
+    - "migrations/**"
+    - "**/alembic/versions/**"
+    - "**/*migration*"
+
+  infrastructure_paths:
+    - "infra/**"
+    - "deploy/**"
+    - "k8s/**"
+    - "terraform/**"
+    - "ansible/**"
+    - "helm/**"
+    - "docker/**"
+
+  test_paths:
+    - "tests/**"
+    - "**/test_*.py"
+    - "**/*.spec.ts"
+    - "**/*.test.ts"
+    - "**/*.spec.tsx"
+    - "**/*.test.tsx"
+
+  labels:
+    frontend:
+      paths:
+        - "frontend/**"
+        - "src/ui/**"
+        - "apps/dashboard/**"
+        - "packages/ui/**"
+    backend:
+      paths:
+        - "backend/**"
+        - "src/api/**"
+        - "apps/api/**"
+    database:
+      paths:
+        - "database/**"
+        - "migrations/**"
+        - "**/alembic/**"
+    infrastructure:
+      paths:
+        - "infra/**"
+        - "deploy/**"
+        - "docker/**"
+        - "k8s/**"
+        - "terraform/**"
+    tests:
+      paths:
+        - "tests/**"
+        - "**/*.spec.ts"
+        - "**/*.test.ts"
+        - "**/test_*.py"
+
+  reviewers:
+    frontend:
+      paths:
+        - "frontend/**"
+        - "src/ui/**"
+        - "apps/dashboard/**"
+      users:
+        - "frontend-lead"
+    backend:
+      paths:
+        - "backend/**"
+        - "src/api/**"
+        - "apps/api/**"
+      users:
+        - "backend-lead"
+    database:
+      paths:
+        - "database/**"
+        - "migrations/**"
+      users:
+        - "dba"
+
+ai_review:
+  enabled: true
+  minimum_confidence: 0.75
+  check:
+    - security vulnerabilities
+    - authentication problems
+    - authorization problems
+    - SQL injection
+    - missing input validation
+    - null handling
+    - runtime errors
+    - breaking API changes
+    - missing tests
+    - race conditions
+    - transaction problems
+    - data loss risks
+  ignore:
+    - formatting
+    - variable naming preferences
+    - stylistic opinions
+    - generated code
+    - dependency lock files
+    - whitespace
+    - lint problems already covered by tooling
+
+path_rules:
+  "auth/**":
+    check:
+      - authentication bypass
+      - token validation
+      - authorization
+      - permission checking
+      - session handling
+  "**/auth/**":
+    check:
+      - authentication bypass
+      - token validation
+      - authorization
+      - permission checking
+      - session handling
+  "database/**":
+    check:
+      - unsafe queries
+      - transaction handling
+      - migration safety
+      - rollback safety
+  "**/migrations/**":
+    check:
+      - unsafe queries
+      - transaction handling
+      - migration safety
+      - rollback safety
+  "payments/**":
+    check:
+      - money rounding
+      - duplicate transactions
+      - idempotency
+      - authorization
+
+project_rules:
+  - "Controllers must not access the database directly."
+  - "Every endpoint must verify authorization."
+  - "New endpoints must include tests."
+  - "Database migrations must be reversible."
+  - "Internal IDs must not be exposed through public APIs."
+
+automation:
+  mode: review_only
+  allowed_actions:
+    - read_pr
+    - read_diff
+    - post_review
+    - add_labels
+    - recommend_merge
+    - request_human_review
+  forbidden_actions:
+    - merge_pr
+    - approve_pr
+    - close_pr
+    - push_code
+    - modify_repository

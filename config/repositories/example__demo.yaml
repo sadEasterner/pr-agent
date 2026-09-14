@@ -1,0 +1,6 @@
+project_rules:
+  - "Controllers must not access the database directly."
+  - "Every endpoint must verify authorization."
+  - "New endpoints must include tests."
+  - "Database migrations must be reversible."
+  - "Internal IDs must not be exposed through public APIs."

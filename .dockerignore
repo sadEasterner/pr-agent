@@ -1,0 +1,16 @@
+**/node_modules
+**/.pnpm-store
+.git
+.nx
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.coverage
+**/dist
+**/coverage
+.env
+postgres-data
+apps/dashboard/dist
+apps/api/.venv

@@ -1,0 +1,32 @@
+{
+  "name": "gitea-pr-manager",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Internal Pull Request management and AI code-review platform for self-hosted Gitea",
+  "packageManager": "pnpm@10.23.0",
+  "scripts": {
+    "nx": "nx",
+    "serve:api": "nx serve api",
+    "serve:dashboard": "nx serve dashboard",
+    "test": "nx run-many -t test",
+    "lint": "nx run-many -t lint",
+    "typecheck": "nx run-many -t typecheck",
+    "build": "nx run-many -t build",
+    "affected:test": "nx affected -t test",
+    "affected:lint": "nx affected -t lint",
+    "affected:build": "nx affected -t build"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "nx"]
+  },
+  "devDependencies": {
+    "@nx/eslint": "^21.6.4",
+    "@nx/js": "^21.6.4",
+    "@nx/react": "^21.6.4",
+    "@nx/vite": "^21.6.4",
+    "@nx/workspace": "^21.6.4",
+    "nx": "^21.6.4",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.2"
+  }
+}
