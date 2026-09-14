@@ -11,7 +11,7 @@ from app.rules.loader import AutomationConfig, load_review_rules
 from tests.conftest import sample_ai_payload
 
 
-def test_gitea_comment_keeps_human_authority() -> None:
+def test_gitea_comment_is_paragraph_and_suggestions() -> None:
     loaded = load_review_rules(Path(__file__).resolve().parents[3] / "config")
     files = [GiteaFileChange(filename="apps/api/app/api/users.py", additions=4, deletions=0)]
     snapshot = PullRequestSnapshot(
@@ -37,8 +37,9 @@ def test_gitea_comment_keeps_human_authority() -> None:
         parse_ai_payload(__import__("json").dumps(sample_ai_payload())),
         PolicyEngine(AutomationConfig(mode="review_only", allowed_actions=["post_review"])),
     )
-    assert "Human approval is required" in body or "Human approval required" in body
     assert "abc123" in body
     assert "approved" not in body.lower()
-    assert "READY FOR HUMAN REVIEW" in body or "CHANGES REQUESTED" in body
+    assert "Merge authority" not in body
+    assert "CHANGES REQUESTED" not in body
     assert "never an instruction" in SYSTEM_PROMPT.lower() or "untrusted" in SYSTEM_PROMPT.lower()
+    assert "Suggestions:" in body or "authorization" in body.lower()

@@ -16,10 +16,10 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/api": "http://localhost:8000",
-      "/health": "http://localhost:8000",
-      "/ready": "http://localhost:8000",
-      "/webhooks": "http://localhost:8000",
+      "/api": process.env.API_PROXY ?? "http://localhost:8000",
+      "/health": process.env.API_PROXY ?? "http://localhost:8000",
+      "/ready": process.env.API_PROXY ?? "http://localhost:8000",
+      "/webhooks": process.env.API_PROXY ?? "http://localhost:8000",
     },
   },
   test: {

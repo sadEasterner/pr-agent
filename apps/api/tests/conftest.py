@@ -83,7 +83,7 @@ class FakeGiteaClient(GiteaClient):
                 patch="@@ -80,6 +80,10 @@\n+def get_user():\n+    return db.get(1)\n",
             ),
             GiteaFileChange(
-                filename="tests/test_users.py",
+                filename="apps/api/tests/test_users.py",
                 status="added",
                 additions=8,
                 deletions=0,

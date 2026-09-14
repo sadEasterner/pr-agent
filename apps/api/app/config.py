@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -48,6 +48,21 @@ class Settings(BaseSettings):
         if value.startswith("postgresql://") and "+asyncpg" not in value:
             return value.replace("postgresql://", "postgresql+asyncpg://", 1)
         return value
+
+    @model_validator(mode="after")
+    def require_production_secrets(self) -> "Settings":
+        if not self.is_production:
+            return self
+        missing: list[str] = []
+        if not self.gitea_webhook_secret:
+            missing.append("GITEA_WEBHOOK_SECRET")
+        if not self.gitea_token:
+            missing.append("GITEA_TOKEN")
+        if not self.gitea_base_url or "example.com" in self.gitea_base_url:
+            missing.append("GITEA_BASE_URL")
+        if missing:
+            raise ValueError("Production requires " + ", ".join(missing))
+        return self
 
     @property
     def cors_origin_list(self) -> list[str]:

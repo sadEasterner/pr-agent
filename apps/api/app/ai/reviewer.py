@@ -92,6 +92,7 @@ class AiReviewer:
             for finding in result.findings
             if finding.confidence >= ai_config.minimum_confidence
         ]
+        result = self._merge_rule_findings(result, rules_result)
         result = self._normalize_recommendation(result)
         logger.info(
             "ai_review_complete",
@@ -135,6 +136,35 @@ class AiReviewer:
             summary="Deterministic rules completed. AI review was disabled.",
             findings=findings,
         )
+
+    def _merge_rule_findings(self, result: AiReviewResult, rules_result: RulesResult) -> AiReviewResult:
+        known = {finding.rule for finding in result.findings}
+        for violation in rules_result.violations:
+            if violation.rule in known:
+                continue
+            result.findings.append(
+                AiFinding(
+                    severity=FindingSeverity(violation.severity)
+                    if violation.severity in FindingSeverity._value2member_map_
+                    else FindingSeverity.MEDIUM,
+                    confidence=1.0,
+                    file=violation.files[0] if violation.files else "",
+                    line=None,
+                    category=violation.rule,
+                    rule=violation.rule,
+                    message=violation.message,
+                    suggested_fix=violation.message,
+                )
+            )
+            known.add(violation.rule)
+        isolation = [item for item in rules_result.violations if item.rule == "workspace_isolation"]
+        if isolation:
+            result.recommendation = Recommendation.CHANGES_REQUESTED
+            if result.risk in {RiskLevel.LOW, RiskLevel.UNKNOWN}:
+                result.risk = RiskLevel.HIGH
+            if isolation[0].message not in result.summary:
+                result.summary = f"{isolation[0].message} {result.summary}".strip()
+        return result
 
     def _normalize_recommendation(self, result: AiReviewResult) -> AiReviewResult:
         severities = {finding.severity for finding in result.findings}

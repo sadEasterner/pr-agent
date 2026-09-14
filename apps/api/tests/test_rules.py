@@ -75,6 +75,50 @@ def test_dangerous_migration_and_test_paths() -> None:
     assert "database" in result.labels
 
 
+def test_workspace_isolation_blocks_other_apps_and_packages() -> None:
+    loaded = load_review_rules(Path(__file__).resolve().parents[3] / "config")
+    engine = RulesEngine(loaded)
+    mixed = engine.evaluate(
+        _snapshot(
+            [
+                GiteaFileChange(filename="apps/app-one/src/index.ts", additions=4, deletions=0),
+                GiteaFileChange(filename="apps/app-two/src/index.ts", additions=2, deletions=0),
+            ]
+        )
+    )
+    assert any(item.rule == "workspace_isolation" for item in mixed.violations)
+
+    leaked_package = engine.evaluate(
+        _snapshot(
+            [
+                GiteaFileChange(filename="apps/app-one/src/index.ts", additions=4, deletions=0),
+                GiteaFileChange(filename="packages/package-one/src/index.ts", additions=2, deletions=0),
+            ]
+        )
+    )
+    assert any(item.rule == "workspace_isolation" for item in leaked_package.violations)
+
+    leaked_root = engine.evaluate(
+        _snapshot(
+            [
+                GiteaFileChange(filename="apps/app-one/src/index.ts", additions=4, deletions=0),
+                GiteaFileChange(filename="README.md", additions=1, deletions=0),
+            ]
+        )
+    )
+    assert any(item.rule == "workspace_isolation" for item in leaked_root.violations)
+
+    clean = engine.evaluate(
+        _snapshot(
+            [
+                GiteaFileChange(filename="apps/app-one/src/index.ts", additions=4, deletions=0),
+                GiteaFileChange(filename="apps/app-one/src/util.ts", additions=1, deletions=0),
+            ]
+        )
+    )
+    assert all(item.rule != "workspace_isolation" for item in clean.violations)
+
+
 def test_path_rules_loaded() -> None:
     loaded = load_review_rules(Path(__file__).resolve().parents[3] / "config")
     assert "auth/**" in loaded.global_rules.path_rules

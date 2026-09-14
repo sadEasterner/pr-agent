@@ -11,6 +11,10 @@
 **/dist
 **/coverage
 .env
+.env.*
+!.env.example
+pr-manager-images.tar
+pr-manager-images.tar.gz
 postgres-data
 apps/dashboard/dist
 apps/api/.venv

@@ -8,7 +8,7 @@ from app.logging import get_logger
 
 logger = get_logger(__name__)
 
-REVIEW_MARKER = "<!-- gitea-pr-manager-review -->"
+REVIEW_MARKER = "PR-MANAGER-REVIEW"
 
 
 @dataclass

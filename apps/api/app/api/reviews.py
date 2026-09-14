@@ -26,6 +26,11 @@ async def request_rereview(
     existing = await service.get_pr(repository, number)
     if existing is None:
         raise HTTPException(status_code=404, detail="Pull request not found")
+    if existing.status in {"closed", "merged"} or existing.merged_at is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="Closed or merged pull requests are not reviewed",
+        )
     processor = request.app.state.processor
     event = GiteaWebhookEvent(
         action="synchronized",

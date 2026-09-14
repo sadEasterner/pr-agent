@@ -104,3 +104,14 @@ class GiteaWebhookEvent(BaseModel):
         if self.pull_request and self.pull_request.head:
             return self.pull_request.head.sha
         return ""
+
+    @property
+    def is_closed_or_merged(self) -> bool:
+        if self.action in {"closed", "merged"}:
+            return True
+        pull_request = self.pull_request
+        if pull_request is None:
+            return False
+        if pull_request.merged:
+            return True
+        return (pull_request.state or "").lower() in {"closed", "merged"}

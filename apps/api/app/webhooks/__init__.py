@@ -10,7 +10,7 @@ from app.webhooks.security import require_gitea_signature
 router = APIRouter(tags=["webhooks"])
 logger = get_logger(__name__)
 
-SUPPORTED_ACTIONS = {"opened", "reopened", "synchronized", "synchronize", "edited", "closed", "merged"}
+REVIEW_ACTIONS = {"opened", "reopened", "synchronized", "synchronize", "edited"}
 
 
 @router.post("/webhooks/gitea", status_code=status.HTTP_202_ACCEPTED)
@@ -34,8 +34,19 @@ async def gitea_webhook(
         logger.info("webhook_ignored_event", gitea_event=event_name)
         return {"status": "ignored"}
 
-    if payload.event_type not in SUPPORTED_ACTIONS and payload.action not in SUPPORTED_ACTIONS:
+    if payload.event_type not in REVIEW_ACTIONS and payload.action not in REVIEW_ACTIONS:
         logger.info("webhook_ignored_action", action=payload.action)
+        return {"status": "ignored"}
+
+    if payload.is_closed_or_merged:
+        logger.info(
+            "webhook_ignored_closed_pr",
+            repository=payload.repository_name,
+            pr_number=payload.pr_number,
+            action=payload.action,
+            state=payload.pull_request.state if payload.pull_request else None,
+            merged=payload.pull_request.merged if payload.pull_request else None,
+        )
         return {"status": "ignored"}
 
     if not payload.repository_name or payload.pr_number is None:

@@ -5,4 +5,12 @@
 body {
   margin: 0;
   min-height: 100vh;
+  background:
+    radial-gradient(1200px 400px at 8% -10%, rgba(15, 118, 110, 0.08), transparent 50%),
+    radial-gradient(900px 320px at 100% 0%, rgba(2, 132, 199, 0.07), transparent 45%),
+    #f8fafc;
+}
+
+#root {
+  min-height: 100vh;
 }

@@ -32,6 +32,7 @@ class PrRulesConfig(BaseModel):
     migration_paths: list[str] = Field(default_factory=list)
     infrastructure_paths: list[str] = Field(default_factory=list)
     test_paths: list[str] = Field(default_factory=list)
+    enforce_workspace_isolation: bool = True
     labels: dict[str, LabelRule] = Field(default_factory=dict)
     reviewers: dict[str, ReviewerRule] = Field(default_factory=dict)
 

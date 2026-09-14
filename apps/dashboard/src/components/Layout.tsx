@@ -12,23 +12,26 @@ const links = [
 
 export function Layout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-lg font-semibold text-slate-900">Gitea PR Manager</p>
+            <p className="text-lg font-semibold tracking-tight text-slate-900">Gitea PR Manager</p>
             <p className="text-xs text-slate-500">AI reviews are advisory. Humans control merge.</p>
           </div>
-          <nav className="flex gap-4 text-sm">
+          <nav className="flex flex-wrap gap-1 text-sm">
             {links.map((link) => (
               <NavLink
                 key={link.to}
                 to={link.to}
                 end={link.to === "/"}
                 className={({ isActive }) =>
-                  isActive
-                    ? "font-semibold text-slate-900"
-                    : "text-slate-500 hover:text-slate-800"
+                  [
+                    "rounded-full px-3 py-1.5 transition-colors",
+                    isActive
+                      ? "bg-slate-900 font-medium text-white"
+                      : "text-slate-500 hover:bg-slate-100 hover:text-slate-800",
+                  ].join(" ")
                 }
               >
                 {link.label}

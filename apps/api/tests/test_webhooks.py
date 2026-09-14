@@ -71,5 +71,48 @@ async def test_valid_webhook_is_accepted(app_client) -> None:
     assert listed.status_code == 200
     assert listed.json()[0]["number"] == 42
     assert any(call[0] == "create_comment" for call in gitea.calls)
-    assert "Human approval required" in gitea.comments[0]["body"]
     assert "approved" not in gitea.comments[0]["body"].lower()
+    assert "Merge authority" not in gitea.comments[0]["body"]
+    assert "Automated PR Review" in gitea.comments[0]["body"]
+
+
+@pytest.mark.asyncio
+async def test_closed_webhook_is_ignored(app_client) -> None:
+    client, _processor, gitea, _ai = app_client
+    body = json.dumps(webhook_payload("closed")).encode()
+    response = await client.post(
+        "/webhooks/gitea",
+        content=body,
+        headers={
+            "X-Gitea-Signature": sign(body),
+            "X-Gitea-Event": "pull_request",
+            "Content-Type": "application/json",
+        },
+    )
+    assert response.status_code == 202
+    assert response.json() == {"status": "ignored"}
+    listed = await client.get("/api/prs")
+    assert listed.json() == []
+    assert not any(call[0] == "create_comment" for call in gitea.calls)
+
+
+@pytest.mark.asyncio
+async def test_merged_webhook_is_ignored(app_client) -> None:
+    client, *_ = app_client
+    payload = webhook_payload("closed")
+    payload["pull_request"]["merged"] = True
+    payload["pull_request"]["state"] = "closed"
+    body = json.dumps(payload).encode()
+    response = await client.post(
+        "/webhooks/gitea",
+        content=body,
+        headers={
+            "X-Gitea-Signature": sign(body),
+            "X-Gitea-Event": "pull_request",
+            "Content-Type": "application/json",
+        },
+    )
+    assert response.status_code == 202
+    assert response.json() == {"status": "ignored"}
+    listed = await client.get("/api/prs")
+    assert listed.json() == []

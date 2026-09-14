@@ -83,3 +83,26 @@ async def test_ai_failure_still_persists_review(app_client, fake_ai) -> None:
     assert detail.status_code == 200
     assert detail.json()["latest_recommendation"] == "unable_to_review"
     assert detail.json()["human_review_status"] == "unable_to_review"
+
+
+@pytest.mark.asyncio
+async def test_processor_skips_closed_pull_request(app_client, fake_gitea) -> None:
+    client, processor, *_ = app_client
+    fake_gitea.pr.state = "closed"
+    fake_gitea.pr.merged = False
+    await processor.process(GiteaWebhookEvent.model_validate(webhook_payload("edited", "abc123")))
+    listed = await client.get("/api/prs")
+    assert listed.json() == []
+    assert not any(call[0] == "create_comment" for call in fake_gitea.calls)
+
+
+@pytest.mark.asyncio
+async def test_rereview_rejects_closed_pull_request(app_client, session) -> None:
+    from tests.conftest import seed_pr
+
+    client, *_ = app_client
+    pull_request = await seed_pr(session)
+    pull_request.status = "closed"
+    await session.commit()
+    response = await client.post("/api/prs/acme/demo/42/rereview")
+    assert response.status_code == 409

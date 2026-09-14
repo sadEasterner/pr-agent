@@ -79,6 +79,15 @@ class ReviewProcessor:
                     pr_number=number,
                 )
                 return
+            if snapshot.merged or snapshot.state.lower() in {"closed", "merged"}:
+                logger.info(
+                    "job_skipped_closed_pr",
+                    repository=repository,
+                    pr_number=number,
+                    state=snapshot.state,
+                    merged=snapshot.merged,
+                )
+                return
             store = ReviewStore(session)
             existing_pr = await session.execute(
                 select(PullRequest).where(

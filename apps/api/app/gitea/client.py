@@ -67,6 +67,7 @@ class GiteaClient:
                 method=method,
                 path=path,
                 status_code=response.status_code,
+                body=response.text[:500],
             )
             raise GiteaClientError(
                 f"Gitea HTTP {response.status_code} for {method} {path}",

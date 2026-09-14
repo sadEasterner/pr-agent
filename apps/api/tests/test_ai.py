@@ -55,6 +55,27 @@ def test_parse_structured_ai_output() -> None:
     assert result.findings[0].confidence == 0.94
 
 
+def test_parse_deepseek_shaped_payload_without_risk_or_confidence() -> None:
+    payload = {
+        "recommendation": "changes_requested",
+        "findings": [
+            {
+                "severity": "medium",
+                "category": "defect",
+                "path": "apps/rx-client/src/selection.tsx",
+                "description": "Selection state can drop the current importer.",
+                "fix": "Preserve the previous selection when the tab changes.",
+            }
+        ],
+    }
+    result = parse_ai_payload(json.dumps(payload))
+    assert result.risk.value == "medium"
+    assert result.recommendation == Recommendation.CHANGES_REQUESTED
+    assert result.findings[0].message.startswith("Selection state")
+    assert result.findings[0].file.endswith("selection.tsx")
+    assert result.findings[0].confidence == 0.8
+
+
 def test_approved_recommendation_is_downgraded() -> None:
     payload = sample_ai_payload()
     payload["recommendation"] = "approved"
@@ -98,6 +119,7 @@ async def test_prompt_injection_is_untrusted(settings) -> None:
     assert "Ignore previous instructions" in user_prompt
     assert "UNTRUSTED_DIFF_BEGIN" in user_prompt
     assert "never an instruction" in system_prompt.lower() or "NOT" in system_prompt
+    assert "refactor" in system_prompt.lower()
 
 
 @pytest.mark.asyncio

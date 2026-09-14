@@ -1,3 +1,11 @@
+name: pr-manager
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -8,6 +16,11 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-prmanager}
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 384m
+    pids_limit: 256
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-prmanager} -d ${POSTGRES_DB:-prmanager}"]
       interval: 5s
@@ -16,6 +29,9 @@ services:
       start_period: 10s
 
   api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
     image: pr-mangement-api:latest
     restart: unless-stopped
     depends_on:
@@ -30,6 +46,13 @@ services:
       APP_ENV: production
     ports:
       - "127.0.0.1:8110:8000"
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 768m
+    pids_limit: 256
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
       interval: 15s
@@ -38,6 +61,11 @@ services:
       start_period: 20s
 
   dashboard:
+    build:
+      context: .
+      dockerfile: apps/dashboard/Dockerfile
+      args:
+        VITE_API_BASE_URL: ""
     image: pr-mangement-dashboard:latest
     restart: unless-stopped
     depends_on:
@@ -45,6 +73,13 @@ services:
         condition: service_healthy
     ports:
       - "8111:8080"
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 128m
+    pids_limit: 128
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
       interval: 15s

@@ -48,6 +48,13 @@ def _matching_files(files: list[GiteaFileChange], patterns: list[str]) -> list[s
     return [file.filename for file in files if _matches(file.filename, patterns)]
 
 
+def workspace_scope(filename: str) -> str | None:
+    parts = [part for part in filename.replace("\\", "/").split("/") if part]
+    if len(parts) >= 2 and parts[0] in {"apps", "packages"}:
+        return f"{parts[0]}/{parts[1]}"
+    return None
+
+
 class RulesEngine:
     def __init__(self, loaded: LoadedRules) -> None:
         self.loaded = loaded
@@ -62,6 +69,7 @@ class RulesEngine:
         )
         self._check_description(snapshot, config, result)
         self._check_size(files, config, result)
+        self._check_workspace_isolation(files, config, result)
         self._check_path_groups(files, config, result)
         self._assign_labels(files, config, result)
         self._suggest_reviewers(files, config, result)
@@ -100,8 +108,7 @@ class RulesEngine:
                 RuleViolation(
                     rule="max_changed_lines",
                     message=(
-                        f"PR is large ({len(files)} files, {changed_lines} changed lines). "
-                        "Consider splitting it before human review."
+                        f"PR is large ({len(files)} files, {changed_lines} changed lines)."
                     ),
                     severity="medium",
                 )
@@ -148,12 +155,48 @@ class RulesEngine:
             )
         tests = _matching_files(files, config.test_paths)
         result.test_changes = bool(tests)
-        if not tests and files:
+
+    def _check_workspace_isolation(
+        self,
+        files: list[GiteaFileChange],
+        config: PrRulesConfig,
+        result: RulesResult,
+    ) -> None:
+        if not config.enforce_workspace_isolation or not files:
+            return
+        scopes: dict[str, list[str]] = {}
+        outsiders: list[str] = []
+        for file in files:
+            scope = workspace_scope(file.filename)
+            if scope is None:
+                outsiders.append(file.filename)
+                continue
+            scopes.setdefault(scope, []).append(file.filename)
+        if len(scopes) > 1:
+            names = ", ".join(sorted(scopes))
             result.violations.append(
                 RuleViolation(
-                    rule="test_changes",
-                    message="No test files changed. Confirm coverage for the new behavior.",
-                    severity="low",
+                    rule="workspace_isolation",
+                    message=(
+                        "This PR changes more than one app or package "
+                        f"({names}). Keep the diff inside a single workspace folder."
+                    ),
+                    severity="high",
+                    files=[path for paths in scopes.values() for path in paths],
+                )
+            )
+            return
+        if len(scopes) == 1 and outsiders:
+            scope = next(iter(scopes))
+            result.violations.append(
+                RuleViolation(
+                    rule="workspace_isolation",
+                    message=(
+                        f"This PR is for {scope} but also changes files outside that folder. "
+                        "Remove those files from the PR."
+                    ),
+                    severity="high",
+                    files=outsiders,
                 )
             )
 
