@@ -14,14 +14,13 @@ from app.gitea.models import (
     GiteaStatus,
 )
 from app.logging import get_logger
+from app.scm.base import ScmError
 
 logger = get_logger(__name__)
 
 
-class GiteaClientError(RuntimeError):
-    def __init__(self, message: str, status_code: int | None = None) -> None:
-        super().__init__(message)
-        self.status_code = status_code
+class GiteaClientError(ScmError):
+    pass
 
 
 class GiteaClient:
@@ -34,9 +33,9 @@ class GiteaClient:
     ) -> None:
         self._settings = settings
         self._owns_client = client is None
-        timeout = httpx.Timeout(settings.gitea_api_timeout_seconds)
+        timeout = httpx.Timeout(settings.scm_timeout)
         self._client = client or httpx.AsyncClient(
-            base_url=settings.gitea_base_url.rstrip("/"),
+            base_url=settings.git_base_url.rstrip("/"),
             timeout=timeout,
             headers=self._headers(),
         )
@@ -45,10 +44,10 @@ class GiteaClient:
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
-            "User-Agent": "gitea-pr-manager/1.0",
+            "User-Agent": "pr-manager/1.0",
         }
-        if self._settings.gitea_token:
-            headers["Authorization"] = f"token {self._settings.gitea_token}"
+        if self._settings.git_token:
+            headers["Authorization"] = f"token {self._settings.git_token}"
         return headers
 
     async def close(self) -> None:

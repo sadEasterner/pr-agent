@@ -42,6 +42,14 @@ export type AuthStatus = {
   username: string | null;
 };
 
+export type AdminControls = {
+  username: string;
+  ai_enabled: boolean;
+  pr_comments_enabled: boolean;
+  ai_provider: string;
+  ai_model: string;
+};
+
 export const api = {
   me: () => request<AuthStatus>("/api/auth/me"),
   login: (username: string, password: string) =>
@@ -50,6 +58,12 @@ export const api = {
       body: JSON.stringify({ username, password }),
     }),
   logout: () => request<AuthStatus>("/api/auth/logout", { method: "POST" }),
+  adminControls: () => request<AdminControls>("/api/admin/controls"),
+  updateAdminControls: (payload: Partial<Pick<AdminControls, "ai_enabled" | "pr_comments_enabled">>) =>
+    request<AdminControls>("/api/admin/controls", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
   summary: () => request<AnalyticsSummary>("/api/analytics/summary"),
   trends: () => request<AnalyticsTrends>("/api/analytics/trends"),
   findings: () => request<AnalyticsFindings>("/api/analytics/findings"),

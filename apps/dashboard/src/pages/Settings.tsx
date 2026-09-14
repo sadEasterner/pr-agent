@@ -18,17 +18,20 @@ export function SettingsPage() {
       <div className="animate-fade-up">
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Automation policy is review-only. Merge and approve actions are forbidden.
+          Automation policy is review-only. Merge and approve actions are forbidden. Turn AI
+          review and PR comments on or off from the Admin page.
         </p>
       </div>
       <article className="animate-fade-up rounded-2xl border border-slate-200/80 bg-white p-6">
         <dl className="grid gap-4 md:grid-cols-2">
           <Item label="Automation mode" value={settings.automation_mode} />
           <Item label="Merge authority" value={settings.merge_authority} />
-          <Item label="AI enabled" value={String(settings.ai_enabled)} />
+          <Item label="AI enabled" value={settings.ai_enabled ? "On" : "Off"} />
+          <Item label="PR comments" value={(settings.pr_comments_enabled ?? true) ? "On" : "Off"} />
           <Item label="AI provider" value={settings.ai_provider} />
           <Item label="AI model" value={settings.ai_model} />
-          <Item label="Gitea configured" value={String(settings.gitea_configured)} />
+          <Item label="Git host" value={settings.scm_provider ?? "gitea"} />
+          <Item label="Git host configured" value={String(settings.scm_configured ?? settings.gitea_configured)} />
         </dl>
         <div className="mt-6 grid gap-6 md:grid-cols-2">
           <List title="Allowed actions" items={settings.allowed_actions} tone="ok" />

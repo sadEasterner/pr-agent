@@ -30,14 +30,16 @@ export function LoginPage({ onLoggedIn }: { onLoggedIn: (username: string) => vo
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-6">
+    <div className="flex justify-start">
       <form
         onSubmit={submit}
         className="w-full max-w-sm space-y-5 rounded-2xl border border-slate-200/80 bg-white p-6"
       >
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-slate-900">Sign in</h1>
-          <p className="mt-1 text-sm text-slate-500">Admin access to Gitea PR Manager.</p>
+          <h1 className="text-xl font-semibold tracking-tight text-slate-900">Admin sign in</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Overview, PRs, and findings stay public. Only this page requires a login.
+          </p>
         </div>
         <label className="block text-sm text-slate-600">
           Username

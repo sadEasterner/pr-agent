@@ -32,6 +32,8 @@ class AiReviewer:
         snapshot: PullRequestSnapshot,
         rules_result: RulesResult,
         bundle: DiffBundle | None = None,
+        *,
+        ai_enabled: bool | None = None,
     ) -> AiReviewResult:
         config = self.loaded_rules.global_rules
         repo_rules = self.loaded_rules.repository_rules.get(snapshot.repository)
@@ -39,7 +41,16 @@ class AiReviewer:
         if repo_rules and repo_rules.ai_review:
             ai_config = repo_rules.ai_review
 
-        if not self.settings.ai_enabled or not ai_config.enabled or self.provider is None:
+        enabled = self.settings.ai_enabled if ai_enabled is None else ai_enabled
+        if enabled and self.provider is None:
+            from app.ai.client import create_ai_provider
+
+            try:
+                self.provider = create_ai_provider(self.settings)
+            except Exception:
+                logger.exception("ai_provider_unavailable")
+                return fallback_unable_to_review("The AI provider is not configured.")
+        if not enabled or not ai_config.enabled or self.provider is None:
             return self._rules_only_result(rules_result)
 
         bundle = bundle or prepare_diff_bundle(snapshot.files, snapshot.diff, self.settings)

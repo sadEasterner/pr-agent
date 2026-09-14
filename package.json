@@ -2,7 +2,7 @@
   "name": "gitea-pr-manager",
   "version": "1.0.0",
   "private": true,
-  "description": "Internal Pull Request management and AI code-review platform for self-hosted Gitea",
+  "description": "Pull request management and AI code-review for Gitea, GitHub, and GitLab",
   "packageManager": "pnpm@10.23.0",
   "scripts": {
     "nx": "nx",

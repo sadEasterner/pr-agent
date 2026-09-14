@@ -134,3 +134,11 @@ class WebhookEvent(Base, TimestampMixin):
     head_sha: Mapped[str] = mapped_column(String(64), nullable=False)
     action: Mapped[str] = mapped_column(String(64), default="", nullable=False)
     status: Mapped[str] = mapped_column(String(32), default="accepted", nullable=False)
+
+
+class RuntimeControl(Base, TimestampMixin):
+    __tablename__ = "runtime_controls"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ai_enabled: Mapped[bool] = mapped_column(default=True, nullable=False)
+    pr_comments_enabled: Mapped[bool] = mapped_column(default=True, nullable=False)

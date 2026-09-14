@@ -5,6 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.api.admin import router as admin_router
 from app.api.analytics import router as analytics_router
 from app.api.auth import router as auth_router
 from app.api.deps import require_admin
@@ -14,11 +15,11 @@ from app.api.reviews import router as reviews_router
 from app.api.settings import router as settings_router
 from app.config import get_settings
 from app.db.session import SessionLocal, engine
-from app.gitea.client import GiteaClient
 from app.jobs.processor import ReviewProcessor
 from app.jobs.queue import JobQueue
 from app.logging import configure_logging, get_logger
 from app.rules.loader import load_review_rules
+from app.scm.factory import create_scm_provider
 from app.webhooks import router as webhook_router
 
 logger = get_logger(__name__)
@@ -29,19 +30,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     configure_logging(settings)
     loaded_rules = load_review_rules(settings.config_dir)
-    gitea_client = GiteaClient(settings)
-    processor = ReviewProcessor(settings, SessionLocal, loaded_rules, gitea_client)
+    scm = create_scm_provider(settings)
+    processor = ReviewProcessor(settings, SessionLocal, loaded_rules, scm)
     queue = JobQueue(processor.process)
     app.state.settings = settings
     app.state.job_queue = queue
     app.state.processor = processor
+    app.state.scm = scm
     await queue.start()
-    logger.info("application_started", env=settings.app_env)
+    logger.info("application_started", env=settings.app_env, scm_provider=settings.git_provider)
     try:
         yield
     finally:
         await queue.stop()
-        await gitea_client.close()
+        await scm.close()
         await engine.dispose()
 
 
@@ -64,6 +66,7 @@ def create_app(*, start_workers: bool = True) -> FastAPI:
     application.include_router(health_router)
     application.include_router(webhook_router)
     application.include_router(auth_router)
+    application.include_router(admin_router)
     application.include_router(prs_router)
     application.include_router(reviews_router)
     application.include_router(analytics_router)

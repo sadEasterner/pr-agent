@@ -84,16 +84,8 @@ def session_username(request: Request, settings: Settings) -> str | None:
 def is_public_path(path: str, method: str, settings: Settings) -> bool:
     if method == "OPTIONS":
         return True
-    public = {
-        "/health",
-        "/ready",
-        "/webhooks/gitea",
-        "/api/auth/login",
-        "/api/auth/logout",
-        "/api/auth/me",
-    }
-    if path in public:
-        return True
-    if not settings.is_production and path in {"/docs", "/redoc", "/openapi.json"}:
-        return True
-    return False
+    if path.startswith("/api/admin"):
+        return False
+    if settings.is_production and path in {"/docs", "/redoc", "/openapi.json"}:
+        return False
+    return True

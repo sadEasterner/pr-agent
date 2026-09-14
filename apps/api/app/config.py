@@ -27,6 +27,12 @@ class Settings(BaseSettings):
     gitea_webhook_secret: str = ""
     gitea_api_timeout_seconds: float = 30.0
 
+    scm_provider: str = "gitea"
+    scm_base_url: str = ""
+    scm_token: str = ""
+    scm_webhook_secret: str = ""
+    scm_api_timeout_seconds: float = 30.0
+
     ai_enabled: bool = False
     ai_provider: str = "openai"
     ai_model: str = "gpt-4o-mini"
@@ -60,12 +66,13 @@ class Settings(BaseSettings):
         if not self.is_production:
             return self
         missing: list[str] = []
-        if not self.gitea_webhook_secret:
-            missing.append("GITEA_WEBHOOK_SECRET")
-        if not self.gitea_token:
-            missing.append("GITEA_TOKEN")
-        if not self.gitea_base_url or "example.com" in self.gitea_base_url:
-            missing.append("GITEA_BASE_URL")
+        if not self.git_webhook_secret:
+            missing.append("SCM_WEBHOOK_SECRET")
+        if not self.git_token:
+            missing.append("SCM_TOKEN")
+        if self.git_provider == "gitea":
+            if not self.git_base_url or "example.com" in self.git_base_url:
+                missing.append("SCM_BASE_URL")
         if not self.admin_username or not self.admin_password:
             missing.append("ADMIN_USERNAME/ADMIN_PASSWORD")
         if not self.auth_session_secret:
@@ -77,6 +84,42 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         return [item.strip() for item in self.cors_origins.split(",") if item.strip()]
+
+    @property
+    def git_provider(self) -> str:
+        from app.scm.base import normalize_provider
+
+        return normalize_provider(self.scm_provider)
+
+    @property
+    def git_token(self) -> str:
+        return self.scm_token or self.gitea_token
+
+    @property
+    def git_webhook_secret(self) -> str:
+        return self.scm_webhook_secret or self.gitea_webhook_secret
+
+    @property
+    def git_base_url(self) -> str:
+        if self.scm_base_url:
+            return self.scm_base_url.rstrip("/")
+        if self.git_provider == "github":
+            return "https://api.github.com"
+        if self.git_provider == "gitlab":
+            return "https://gitlab.com"
+        return self.gitea_base_url.rstrip("/")
+
+    @property
+    def scm_timeout(self) -> float:
+        return self.scm_api_timeout_seconds or self.gitea_api_timeout_seconds
+
+    @property
+    def scm_configured(self) -> bool:
+        if not self.git_token or not self.git_webhook_secret:
+            return False
+        if self.git_provider == "gitea":
+            return bool(self.git_base_url) and "example.com" not in self.git_base_url
+        return True
 
     @property
     def review_rules_path(self) -> Path:
@@ -92,7 +135,7 @@ class Settings(BaseSettings):
 
     @property
     def ai_review_api_key(self) -> str:
-        """Key used only by the PR reviewer. Never sent to Gitea or other services."""
+        """Key used only by the PR reviewer. Never sent to the Git host or other services."""
         if self.ai_provider.lower().strip() == "deepseek":
             return self.deepseek_api_key
         return self.openai_api_key

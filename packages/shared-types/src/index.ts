@@ -116,8 +116,11 @@ export interface AppSettings {
   allowed_actions: string[];
   forbidden_actions: string[];
   ai_enabled: boolean;
+  pr_comments_enabled?: boolean;
   ai_provider: string;
   ai_model: string;
+  scm_provider?: string;
+  scm_configured?: boolean;
   gitea_configured: boolean;
   merge_authority: "human";
   notes: string[];

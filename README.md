@@ -1,121 +1,46 @@
-# Gitea PR Manager
+# PR Manager
 
-Internal Pull Request management and AI code-review platform for a self-hosted Gitea instance.
+AI-assisted pull request review for **Gitea, GitHub, GitLab, and Forgejo**.
 
-The AI is a reviewer and recommendation engine. **It never merges, approves, closes, or pushes code.** Merge authority stays with humans in Gitea.
+The AI is a reviewer. **It never merges, approves, closes, or pushes code.** Humans keep merge authority on the Git host.
 
-## 1. Architecture
+## What you get
 
-```text
-                SELF-HOSTED GITEA
-                       |
-                       | webhooks
-                       v
-             +--------------------+
-             | FastAPI PR Manager |
-             +--------------------+
-                |       |       |
-                v       v       v
-             Rules     AI    PostgreSQL
-             Engine  Reviewer    |
-                |                 |
-                +--------+--------+
-                         |
-                         v
-                       Gitea
-                         +
-                         |
-                         v
-                 React Dashboard
-                         |
-                         v
-                    FastAPI API
-```
-
-Separated responsibilities:
-
-1. Deterministic PR automation (labels, size, dangerous paths, reviewers)
-2. AI code review (advisory, structured, SHA-scoped)
-3. Human approval and merge control
-4. Persistent review history
-5. Engineering analytics
-6. Dashboard and reporting
-
-Webhook requests are acknowledged immediately. Review work runs on an in-process job queue that can later be replaced with Redis/ARQ/Celery without changing PR management logic.
-
-## 2. Monorepo layout
+- Webhooks from your Git host, verified with HMAC or a GitLab token
+- Deterministic rules (size, dangerous paths, workspace isolation, labels)
+- Optional AI review (DeepSeek, OpenAI, or any OpenAI-compatible endpoint)
+- A dashboard for history, findings, and trends
+- An admin page to turn the AI API and PR comments on or off
 
 ```text
-.
-├── apps/
-│   ├── api/                 FastAPI + SQLAlchemy + Alembic (uv)
-│   └── dashboard/           React + Vite + Tailwind (pnpm)
-├── packages/
-│   ├── ui/                  Shared dashboard components
-│   └── shared-types/        Shared TypeScript API types
-├── config/
-│   ├── review-rules.yaml    Global PR, AI, and automation policy
-│   └── repositories/        Per-repository engineering rules
-├── docker/
-├── nx.json
-├── pnpm-workspace.yaml
-└── docker-compose.yml
+   Gitea / GitHub / GitLab
+            |
+         webhooks
+            v
+     FastAPI PR Manager
+        |      |      |
+     Rules    AI   PostgreSQL
+        |      |
+        +------+
+            |
+     comment on the PR
+            |
+      React dashboard
 ```
 
-Nx orchestrates both ecosystems. It does not replace uv or pnpm.
+## Docs
 
-## 3. Nx
+| Guide | When to read it |
+| --- | --- |
+| [docs/PROVIDERS.md](docs/PROVIDERS.md) | Connect Gitea, GitHub, or GitLab |
+| [docs/DEPLOY.md](docs/DEPLOY.md) | Docker, production, secrets, TLS, reverse proxy |
+| [docs/ADDING-A-PROVIDER.md](docs/ADDING-A-PROVIDER.md) | Add Bitbucket or another host |
 
-Useful targets:
-
-```bash
-pnpm nx serve api
-pnpm nx test api
-pnpm nx lint api
-pnpm nx typecheck api
-
-pnpm nx serve dashboard
-pnpm nx test dashboard
-pnpm nx lint dashboard
-pnpm nx typecheck dashboard
-pnpm nx build dashboard
-
-pnpm nx run-many -t test
-pnpm nx run-many -t lint
-pnpm nx affected -t test
-```
-
-Python targets execute uv:
-
-```bash
-uv run pytest
-uv run ruff check .
-uv run mypy app
-uv run uvicorn app.main:app
-```
-
-## 4. pnpm
-
-JavaScript and TypeScript dependencies are managed with pnpm workspaces.
-
-```bash
-pnpm install
-```
-
-Do not install Python packages with npm.
-
-## 5. uv
-
-Python 3.12+ dependencies are managed with uv in `apps/api`.
-
-```bash
-uv sync --project apps/api --all-extras
-```
-
-## 6. Local development
+## Quick start (local)
 
 ```bash
 cp .env.example .env
+# set SCM_PROVIDER, SCM_BASE_URL, SCM_TOKEN, SCM_WEBHOOK_SECRET
 pnpm install
 uv sync --project apps/api --all-extras
 docker compose up -d postgres
@@ -124,7 +49,7 @@ pnpm nx serve api
 pnpm nx serve dashboard
 ```
 
-Compose publishes PostgreSQL on host port **15432** so it does not collide with a local Postgres on 5432. The API container still uses `postgres:5432` internally. For a local API talking to Compose Postgres:
+Compose publishes PostgreSQL on host port **15432**. Point a local API at:
 
 ```text
 DATABASE_URL=postgresql+asyncpg://prmanager:prmanager@localhost:15432/prmanager
@@ -134,211 +59,83 @@ API: http://localhost:8000
 Dashboard: http://localhost:5173  
 API docs: http://localhost:8000/docs
 
-## 7. Environment variables
-
-See `.env.example`.
-
-| Variable | Purpose |
-| --- | --- |
-| `DATABASE_URL` | PostgreSQL SQLAlchemy URL (`postgresql+asyncpg://...`) |
-| `GITEA_BASE_URL` | Self-hosted Gitea origin |
-| `GITEA_TOKEN` | Gitea API token |
-| `GITEA_WEBHOOK_SECRET` | Shared webhook HMAC secret |
-| `AI_ENABLED` | Enable the AI reviewer |
-| `AI_PROVIDER` | `openai` or an OpenAI-compatible provider |
-| `AI_MODEL` | Model name |
-| `OPENAI_API_KEY` | Provider API key |
-| `OPENAI_BASE_URL` | Override for compatible endpoints, including Ollama gateways |
-| `CORS_ORIGINS` | Dashboard origins |
-
-Secrets are read from the environment. They are never baked into images and never written to logs.
-
-## 8. PostgreSQL
-
-Production uses PostgreSQL 16. Schema is managed with Alembic:
-
-```bash
-pnpm nx run api:migrate
-# or
-uv run --project apps/api alembic upgrade head
-```
-
-Tests may use SQLite through the same SQLAlchemy models. Do not use SQLite in production.
-
-## 9. Gitea token configuration
-
-Create a Gitea user or application token that can:
-
-- Read pull requests, diffs, commits, and repository metadata
-- Post and update issue comments
-- Add labels
-- Request reviewers, if your Gitea version supports it
-
-The token must **not** be used to merge, approve, close, or push. Those actions are forbidden in `config/review-rules.yaml` even if the token happens to allow them.
-
-```text
-GITEA_BASE_URL=https://gitea.example.com
-GITEA_TOKEN=...
-```
-
-## 10. Gitea webhook setup
-
-In each repository (or a Gitea organization hook):
-
-1. URL: `https://pr-manager.example.com/webhooks/gitea`
-2. HTTP method: POST
-3. Secret: the same value as `GITEA_WEBHOOK_SECRET`
-4. Events: Pull Request (`opened`, `reopened`, `synchronized`, `edited`, `closed`)
-
-The API verifies `X-Gitea-Signature` / `X-Hub-Signature-256`. Invalid signatures are rejected. Duplicate deliveries for the same repository, PR number, event type, and head SHA are ignored.
-
-## 11. OpenAI configuration
-
-```text
-AI_ENABLED=true
-AI_PROVIDER=openai
-AI_MODEL=gpt-4o-mini
-OPENAI_API_KEY=...
-OPENAI_BASE_URL=https://api.openai.com/v1
-```
-
-The application is not coupled to OpenAI. Add another provider under `apps/api/app/ai/providers/` and select it with `AI_PROVIDER`. Compatible endpoints (including internal gateways or Ollama proxies) can use `OPENAI_BASE_URL`.
-
-If `AI_ENABLED=false`, deterministic rules still run and a human-review recommendation is stored.
-
-## 12. Review rules
-
-Global rules live in `config/review-rules.yaml`:
-
-- Missing descriptions and large PRs
-- Dangerous, migration, infrastructure, and test paths
-- Labels and suggested reviewers
-- AI checks, ignores, and `minimum_confidence`
-- Path-specific AI checks
-- Project engineering rules
-- Automation allow/deny lists
-
-Deterministic rules never call the model. The AI reviewer never replaces them.
-
-## 13. Repository-specific rules
-
-Add YAML files in `config/repositories/` named `{owner}__{repo}.yaml`.
-
-Example: `config/repositories/acme__payments.yaml`
-
-```yaml
-project_rules:
-  - "Payment amounts must be stored as integers in the smallest currency unit."
-  - "All payment mutations must be idempotent."
-```
-
-Repository rules are combined with global rules, path rules, PR metadata, and the filtered diff.
-
-## 14. Running tests
-
-```bash
-pnpm nx test api
-pnpm nx test dashboard
-pnpm nx run-many -t lint
-pnpm nx run-many -t typecheck
-pnpm nx build dashboard
-```
-
-Backend tests mock Gitea and the AI provider. They do not need internet access, a live Gitea, or OpenAI.
-
-## 15. Docker deployment
+## Docker (all-in-one)
 
 ```bash
 cp .env.example .env
 docker compose up --build
 ```
 
-The stack includes `api`, `dashboard`, and `postgres`.
-
-- Containers run as non-root users
-- PostgreSQL data is persisted in a named volume
-- Healthchecks and restart policies are enabled
-- Secrets come from environment variables
-- The API runs Alembic migrations on startup
-
 Dashboard: http://localhost:8088  
 API: http://localhost:8000
 
-## 16. Dashboard
+The API runs Alembic migrations on startup. Secrets come from `.env`, never from the image.
 
-Professional React dashboard with:
-
-- Overview cards and process charts
-- Pull request list with filters
-- PR detail, findings by severity, and review history by SHA
-- Findings, repositories, trends, and settings
-
-The UI makes it obvious that AI output is a recommendation. Merge stays in Gitea via the “Open in Gitea” link. The dashboard does not merge pull requests.
-
-## 17. Analytics
+## Git host in one screen
 
 ```text
-GET /api/analytics/summary
-GET /api/analytics/trends
-GET /api/analytics/findings
-GET /api/analytics/repositories
-GET /api/analytics/prs
-GET /api/analytics/prs/{repository}/{number}
+SCM_PROVIDER=gitea          # or github, gitlab
+SCM_BASE_URL=https://git.example.com
+SCM_TOKEN=...               # read PRs, post comments, add labels — not merge
+SCM_WEBHOOK_SECRET=...
 ```
 
-Metrics focus on engineering patterns: PR size, time to first review, time to merge, severity, categories, repeated modules, and review iterations. There is no developer score.
+| Provider | Webhook URL | Auth |
+| --- | --- | --- |
+| Gitea / Forgejo | `POST /webhooks/gitea` | `X-Gitea-Signature` / `X-Hub-Signature-256` |
+| GitHub | `POST /webhooks/github` | `X-Hub-Signature-256` |
+| GitLab | `POST /webhooks/gitlab` | `X-Gitlab-Token` |
+| Configured host | `POST /webhooks/scm` | Same as `SCM_PROVIDER` |
 
-## 18. Security model
+Legacy `GITEA_*` variables still work if `SCM_*` is empty.
 
-- HMAC webhook verification
-- Strict Pydantic validation
-- HTTP body size limits and request timeouts
-- AI diff size, file count, and chunk limits
-- Binary, generated, vendor, `node_modules`, and lockfile exclusion
-- Structured logs with secret redaction
-- Environment-based secrets
-- No shell execution and no evaluation of repository commands
-- Repository content is treated as hostile input
+Token scopes must **not** be used to merge, approve, close, or push. Those actions are forbidden in `config/review-rules.yaml` even if the token could do them.
 
-## 19. AI permission model
+## Monorepo
 
-`config/review-rules.yaml` separates recommendations from permissions.
+```text
+.
+├── apps/api            FastAPI + SQLAlchemy + Alembic (uv)
+├── apps/dashboard      React + Vite + Tailwind (pnpm)
+├── packages/           Shared UI and TypeScript types
+├── config/             Review rules
+├── docs/
+└── docker-compose.yml
+```
 
-Allowed in v1:
+Nx orchestrates both ecosystems. It does not replace uv or pnpm.
 
-- Read PRs and diffs
-- Post one summary review
-- Add labels
-- Recommend merge in language only
-- Request human review
+```bash
+pnpm nx serve api
+pnpm nx serve dashboard
+pnpm nx test api
+pnpm nx test dashboard
+pnpm nx run-many -t lint
+```
 
-Forbidden, always:
+## AI
 
-- `merge_pr`
-- `approve_pr`
-- `close_pr`
-- `push_code`
-- `modify_repository`
+```text
+AI_ENABLED=true
+AI_PROVIDER=deepseek          # or openai
+AI_MODEL=deepseek-chat
+DEEPSEEK_API_KEY=...          # or OPENAI_API_KEY
+```
 
-If the model says “approved” or “ready to merge”, the system stores `ready_for_human_review` / `waiting_for_human`. The Gitea comment states that human approval is required. Allowed recommendation values are:
+If `AI_ENABLED=false`, rules still run. Admins can also disable AI and PR comments at runtime from `/admin` without restarting.
 
-- `ready_for_human_review`
-- `changes_requested`
-- `high_risk`
-- `unable_to_review`
+## Admin page
 
-The same commit SHA is never reviewed twice unless a human explicitly requests a re-review.
+Only `/admin` is login-protected. Overview and PR pages stay public.
 
-## 20. Production deployment
+Set `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and `AUTH_SESSION_SECRET` in `.env`. Production refuses to start without them.
 
-1. Provision PostgreSQL and set `DATABASE_URL`.
-2. Set Gitea URL, token, and webhook secret from a secret manager.
-3. Keep `AI_ENABLED` and the provider key in secrets. Do not put them in the image.
-4. Deploy `api` and `dashboard` behind TLS.
-5. Point Gitea webhooks at `https://<api-host>/webhooks/gitea`.
-6. Confirm `GET /health` and `GET /ready`.
-7. `/health` does not require the AI provider. `/ready` checks configuration and the database.
-8. Start with `automation.mode: review_only` and the default forbidden merge/approve actions.
-9. Tune `config/review-rules.yaml` per team, then add repository files as needed.
+## Security
 
-Dashboard-based approvals can be added later. They are intentionally omitted from v1 because merge is a security-sensitive action.
+- Webhook signatures are required
+- AI never gets merge authority
+- Diff size, file count, and generated/vendor paths are limited
+- Logs redact tokens, passwords, and webhook secrets
+- Request bodies have a size cap
+
+See [docs/DEPLOY.md](docs/DEPLOY.md) before you publish a deployment.

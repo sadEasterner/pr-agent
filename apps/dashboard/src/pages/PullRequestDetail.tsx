@@ -52,7 +52,7 @@ export function PullRequestDetailPage() {
             target="_blank"
             rel="noreferrer"
           >
-            Open in Gitea
+            Open pull request
           </a>
         </div>
         <div className="mt-6 grid gap-4 md:grid-cols-4">
@@ -76,7 +76,7 @@ export function PullRequestDetailPage() {
             {HUMAN_STATUS_LABEL[item.human_review_status]}
           </p>
           <p className="mt-2 text-sm text-amber-900">
-            This is not approval. Merge authority remains with a human in Gitea.
+            This is not approval. Merge authority remains with a human on the Git host.
           </p>
         </div>
       </div>

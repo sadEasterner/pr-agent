@@ -12,15 +12,17 @@ from app.ai.diff import prepare_diff_bundle
 from app.ai.reviewer import AiReviewer
 from app.config import Settings
 from app.db.models import PullRequest, WebhookEvent
-from app.gitea.client import GiteaClient
-from app.gitea.service import GiteaService
 from app.logging import get_logger
 from app.policy.engine import AutomationAction, PolicyEngine
-from app.reviews.comments import render_gitea_review
+from app.reviews.comments import render_review
 from app.reviews.store import ReviewStore
 from app.rules.engine import RulesEngine
 from app.rules.loader import LoadedRules
-from app.webhooks.schemas import GiteaWebhookEvent
+from app.runtime import get_runtime_controls
+from app.scm.base import ScmProvider
+from app.gitea.client import GiteaClient
+from app.gitea.service import GiteaService
+from app.webhooks.schemas import PullRequestEvent
 
 logger = get_logger(__name__)
 
@@ -31,13 +33,13 @@ class ReviewProcessor:
         settings: Settings,
         session_factory: async_sessionmaker[AsyncSession],
         loaded_rules: LoadedRules,
-        gitea_client: GiteaClient,
+        scm: ScmProvider | GiteaClient,
         ai_reviewer: AiReviewer | None = None,
     ) -> None:
         self.settings = settings
         self.session_factory = session_factory
         self.loaded_rules = loaded_rules
-        self.gitea = GiteaService(gitea_client)
+        self.scm = GiteaService(scm) if isinstance(scm, GiteaClient) else scm
         self.rules = RulesEngine(loaded_rules)
         self.policy = PolicyEngine(loaded_rules.global_rules.automation)
         self.ai_reviewer = ai_reviewer or AiReviewer(
@@ -46,7 +48,7 @@ class ReviewProcessor:
             create_ai_provider(settings) if settings.ai_enabled else None,
         )
 
-    async def process(self, event: GiteaWebhookEvent, force: bool = False) -> None:
+    async def process(self, event: PullRequestEvent, force: bool = False) -> None:
         repository = event.repository_name
         number = event.pr_number
         if not repository or number is None:
@@ -71,10 +73,10 @@ class ReviewProcessor:
                 )
                 return
             try:
-                snapshot = await self.gitea.fetch_snapshot(repository, number)
+                snapshot = await self.scm.fetch_snapshot(repository, number)
             except Exception:
                 logger.exception(
-                    "gitea_fetch_failed",
+                    "scm_fetch_failed",
                     repository=repository,
                     pr_number=number,
                 )
@@ -119,8 +121,14 @@ class ReviewProcessor:
                 labels=rules_result.labels,
                 violations=len(rules_result.violations),
             )
+            controls = await get_runtime_controls(session, self.settings)
             bundle = prepare_diff_bundle(snapshot.files, snapshot.diff, self.settings)
-            ai_result = await self.ai_reviewer.review(snapshot, rules_result, bundle)
+            ai_result = await self.ai_reviewer.review(
+                snapshot,
+                rules_result,
+                bundle,
+                ai_enabled=controls.ai_enabled,
+            )
             human_status = self.policy.assert_not_merge_authority(ai_result.recommendation.value)
             duration_ms = int((time.perf_counter() - started) * 1000)
             pull_request = await store.upsert_pull_request(
@@ -135,28 +143,35 @@ class ReviewProcessor:
                 rules_result,
                 ai_result,
                 duration_ms,
-                self.settings.ai_model if self.settings.ai_enabled else None,
-                self.settings.ai_enabled,
+                self.settings.ai_model if controls.ai_enabled else None,
+                controls.ai_enabled,
                 forced=force,
             )
             await session.commit()
             if self.policy.can(AutomationAction.ADD_LABELS) and rules_result.labels:
                 try:
-                    await self.gitea.client.add_labels(repository, number, rules_result.labels)
+                    await self.scm.add_labels(repository, number, rules_result.labels)
                 except Exception:
-                    logger.exception("gitea_labels_failed", repository=repository, pr_number=number)
-            if self.policy.can(AutomationAction.POST_REVIEW):
-                body = render_gitea_review(snapshot, rules_result, ai_result, self.policy)
+                    logger.exception("scm_labels_failed", repository=repository, pr_number=number)
+            if controls.pr_comments_enabled and self.policy.can(AutomationAction.POST_REVIEW):
+                body = render_review(snapshot, rules_result, ai_result, self.policy)
                 try:
-                    await self.gitea.post_or_update_review_comment(repository, number, body)
+                    await self.scm.post_or_update_review_comment(repository, number, body)
                     logger.info(
-                        "gitea_update",
+                        "scm_comment_published",
                         repository=repository,
                         pr_number=number,
                         head_sha=snapshot.head_sha,
                     )
                 except Exception:
-                    logger.exception("gitea_comment_failed", repository=repository, pr_number=number)
+                    logger.exception("scm_comment_failed", repository=repository, pr_number=number)
+            elif not controls.pr_comments_enabled:
+                logger.info(
+                    "gitea_comment_skipped",
+                    repository=repository,
+                    pr_number=number,
+                    head_sha=snapshot.head_sha,
+                )
             logger.info(
                 "job_complete",
                 repository=repository,
@@ -167,7 +182,7 @@ class ReviewProcessor:
                 processing_time_ms=duration_ms,
             )
 
-    async def _claim_event(self, session: AsyncSession, event: GiteaWebhookEvent) -> bool:
+    async def _claim_event(self, session: AsyncSession, event: PullRequestEvent) -> bool:
         sha = event.head_sha or "unknown"
         values = {
             "repository": event.repository_name,

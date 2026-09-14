@@ -4,11 +4,11 @@ import asyncio
 from collections.abc import Awaitable, Callable
 
 from app.logging import get_logger
-from app.webhooks.schemas import GiteaWebhookEvent
+from app.webhooks.schemas import PullRequestEvent
 
 logger = get_logger(__name__)
 
-ProcessFn = Callable[[GiteaWebhookEvent], Awaitable[None]]
+ProcessFn = Callable[[PullRequestEvent], Awaitable[None]]
 
 
 class JobQueue:
@@ -16,7 +16,7 @@ class JobQueue:
 
     def __init__(self, processor: ProcessFn) -> None:
         self._processor = processor
-        self._queue: asyncio.Queue[GiteaWebhookEvent] = asyncio.Queue()
+        self._queue: asyncio.Queue[PullRequestEvent] = asyncio.Queue()
         self._task: asyncio.Task[None] | None = None
 
     async def start(self) -> None:
@@ -32,7 +32,7 @@ class JobQueue:
                 pass
             self._task = None
 
-    async def enqueue(self, event: GiteaWebhookEvent) -> None:
+    async def enqueue(self, event: PullRequestEvent) -> None:
         await self._queue.put(event)
 
     async def _run(self) -> None:

@@ -1,38 +1,23 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from app.gitea.client import GiteaClient
-from app.gitea.models import GiteaFileChange, GiteaPullRequest
 from app.logging import get_logger
+from app.scm.comments import REVIEW_MARKER, upsert_review_comment
+from app.scm.models import PullRequestSnapshot
 
 logger = get_logger(__name__)
 
-REVIEW_MARKER = "PR-MANAGER-REVIEW"
-
-
-@dataclass
-class PullRequestSnapshot:
-    repository: str
-    number: int
-    title: str
-    description: str
-    author: str
-    source_branch: str
-    target_branch: str
-    head_sha: str
-    html_url: str
-    state: str
-    merged: bool
-    files: list[GiteaFileChange]
-    diff: str
-    commit_count: int
-    pull_request: GiteaPullRequest
+__all__ = ["GiteaService", "PullRequestSnapshot", "REVIEW_MARKER"]
 
 
 class GiteaService:
+    name = "gitea"
+
     def __init__(self, client: GiteaClient) -> None:
         self.client = client
+
+    async def close(self) -> None:
+        await self.client.close()
 
     async def fetch_snapshot(self, repository: str, number: int) -> PullRequestSnapshot:
         pull_request = await self.client.get_pull_request(repository, number)
@@ -62,6 +47,9 @@ class GiteaService:
             files=files,
             diff=diff,
             commit_count=len(commits),
+            opened_at=pull_request.created_at,
+            closed_at=pull_request.closed_at,
+            merged_at=pull_request.merged_at,
             pull_request=pull_request,
         )
 
@@ -71,17 +59,17 @@ class GiteaService:
         number: int,
         body: str,
     ) -> None:
-        marked_body = f"{REVIEW_MARKER}\n{body}"
-        comments = await self.client.get_comments(repository, number)
-        existing = next((comment for comment in comments if REVIEW_MARKER in comment.body), None)
-        if existing:
-            await self.client.update_comment(repository, existing.id, marked_body)
-            logger.info(
-                "gitea_comment_updated",
-                repository=repository,
-                pr_number=number,
-                comment_id=existing.id,
-            )
-            return
-        await self.client.create_comment(repository, number, marked_body)
-        logger.info("gitea_comment_created", repository=repository, pr_number=number)
+        await upsert_review_comment(
+            provider=self.name,
+            repository=repository,
+            number=number,
+            body=body,
+            list_comments=self.client.get_comments,
+            create_comment=self.client.create_comment,
+            update_comment=lambda repo, _pr, comment_id, marked: self.client.update_comment(
+                repo, comment_id, marked
+            ),
+        )
+
+    async def add_labels(self, repository: str, number: int, labels: list[str]) -> None:
+        await self.client.add_labels(repository, number, labels)

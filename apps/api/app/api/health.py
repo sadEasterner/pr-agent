@@ -22,10 +22,10 @@ async def ready(
     missing: list[str] = []
     if not settings.database_url:
         missing.append("DATABASE_URL")
-    if not settings.gitea_base_url:
-        missing.append("GITEA_BASE_URL")
-    if not settings.gitea_webhook_secret:
-        missing.append("GITEA_WEBHOOK_SECRET")
+    if not settings.git_webhook_secret:
+        missing.append("SCM_WEBHOOK_SECRET")
+    if settings.git_provider == "gitea" and not settings.git_base_url:
+        missing.append("SCM_BASE_URL")
     return {
         "status": "ready" if not missing else "degraded",
         "database": True,

@@ -238,6 +238,9 @@ async def app_client(
 ) -> AsyncGenerator[tuple[AsyncClient, ReviewProcessor, FakeGiteaClient, FakeAiProvider], None]:
     monkeypatch.setattr("app.config.get_settings", lambda: settings)
     monkeypatch.setattr("app.main.get_settings", lambda: settings)
+    monkeypatch.setattr("app.api.auth.get_settings", lambda: settings)
+    monkeypatch.setattr("app.api.admin.get_settings", lambda: settings)
+    monkeypatch.setattr("app.api.deps.get_settings", lambda: settings)
     loaded = load_review_rules(settings.config_dir)
     from app.ai.reviewer import AiReviewer
 
@@ -266,11 +269,6 @@ async def app_client(
     application.dependency_overrides[get_settings] = lambda: settings
     transport = ASGITransport(app=application)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        login = await client.post(
-            "/api/auth/login",
-            json={"username": settings.admin_username, "password": settings.admin_password},
-        )
-        assert login.status_code == 200
         yield client, processor, fake_gitea, fake_ai
 
 

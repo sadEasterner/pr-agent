@@ -3,7 +3,7 @@ from pydantic import ValidationError
 from app.config import Settings, get_settings
 
 
-def test_production_requires_gitea_secrets() -> None:
+def test_production_requires_scm_secrets() -> None:
     get_settings.cache_clear()
     try:
         Settings(
@@ -15,6 +15,21 @@ def test_production_requires_gitea_secrets() -> None:
         raise AssertionError("expected ValidationError")
     except ValidationError:
         pass
+
+
+def test_github_production_uses_public_api_default() -> None:
+    get_settings.cache_clear()
+    settings = Settings(
+        app_env="production",
+        scm_provider="github",
+        scm_token="gh-token",
+        scm_webhook_secret="hook-secret",
+        admin_username="admin",
+        admin_password="admin-password",
+        auth_session_secret="session-secret-not-for-production",
+    )
+    assert settings.git_base_url == "https://api.github.com"
+    assert settings.git_provider == "github"
 
 
 def test_production_requires_admin_credentials() -> None:

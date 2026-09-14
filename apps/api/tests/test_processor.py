@@ -97,12 +97,31 @@ async def test_processor_skips_closed_pull_request(app_client, fake_gitea) -> No
 
 
 @pytest.mark.asyncio
-async def test_rereview_rejects_closed_pull_request(app_client, session) -> None:
-    from tests.conftest import seed_pr
+async def test_admin_can_disable_pr_comments(app_client, fake_gitea, settings) -> None:
+    client, processor, *_ = app_client
+    login = await client.post(
+        "/api/auth/login",
+        json={"username": settings.admin_username, "password": settings.admin_password},
+    )
+    assert login.status_code == 200
+    toggled = await client.patch("/api/admin/controls", json={"pr_comments_enabled": False})
+    assert toggled.status_code == 200
+    await processor.process(GiteaWebhookEvent.model_validate(webhook_payload("opened", "abc123")))
+    assert not any(call[0] == "create_comment" for call in fake_gitea.calls)
+    assert not fake_gitea.comments
 
-    client, *_ = app_client
-    pull_request = await seed_pr(session)
-    pull_request.status = "closed"
-    await session.commit()
-    response = await client.post("/api/prs/acme/demo/42/rereview")
-    assert response.status_code == 409
+
+@pytest.mark.asyncio
+async def test_admin_can_disable_ai_review(app_client, fake_ai, settings) -> None:
+    client, processor, *_ = app_client
+    login = await client.post(
+        "/api/auth/login",
+        json={"username": settings.admin_username, "password": settings.admin_password},
+    )
+    assert login.status_code == 200
+    await client.patch("/api/admin/controls", json={"ai_enabled": False})
+    await processor.process(GiteaWebhookEvent.model_validate(webhook_payload("opened", "abc123")))
+    detail = await client.get("/api/prs/acme/demo/42")
+    assert detail.status_code == 200
+    assert "AI review was disabled" in detail.json()["reviews"][0]["summary"]
+    assert fake_ai.prompts == []

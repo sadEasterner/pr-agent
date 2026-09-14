@@ -74,8 +74,11 @@ class SettingsOut(BaseModel):
     allowed_actions: list[str]
     forbidden_actions: list[str]
     ai_enabled: bool
+    pr_comments_enabled: bool = True
     ai_provider: str
     ai_model: str
+    scm_provider: str = "gitea"
+    scm_configured: bool = False
     gitea_configured: bool
     merge_authority: str = "human"
     notes: list[str]

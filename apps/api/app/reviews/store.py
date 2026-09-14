@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.ai.schemas import AiReviewResult
 from app.db.models import Finding, PullRequest, Review, ReviewMetrics
-from app.gitea.service import PullRequestSnapshot
+from app.scm.models import PullRequestSnapshot
 from app.rules.engine import RulesResult
 
 
@@ -42,6 +42,13 @@ class ReviewStore:
         )
         pull_request = result.scalar_one_or_none()
         pr_model = snapshot.pull_request
+        opened_at = snapshot.opened_at
+        closed_at = snapshot.closed_at
+        merged_at = snapshot.merged_at
+        if pr_model is not None:
+            opened_at = opened_at or getattr(pr_model, "created_at", None)
+            closed_at = closed_at or getattr(pr_model, "closed_at", None)
+            merged_at = merged_at or getattr(pr_model, "merged_at", None)
         status = "merged" if snapshot.merged else snapshot.state
         if pull_request is None:
             pull_request = PullRequest(
@@ -58,9 +65,9 @@ class ReviewStore:
                 human_review_status=human_review_status,
                 latest_risk=risk,
                 latest_recommendation=recommendation,
-                opened_at=_parse_dt(pr_model.created_at),
-                closed_at=_parse_dt(pr_model.closed_at),
-                merged_at=_parse_dt(pr_model.merged_at),
+                opened_at=_parse_dt(opened_at),
+                closed_at=_parse_dt(closed_at),
+                merged_at=_parse_dt(merged_at),
             )
             self.session.add(pull_request)
         else:
@@ -75,8 +82,8 @@ class ReviewStore:
             pull_request.human_review_status = human_review_status
             pull_request.latest_risk = risk
             pull_request.latest_recommendation = recommendation
-            pull_request.closed_at = _parse_dt(pr_model.closed_at)
-            pull_request.merged_at = _parse_dt(pr_model.merged_at)
+            pull_request.closed_at = _parse_dt(closed_at)
+            pull_request.merged_at = _parse_dt(merged_at)
         await self.session.flush()
         return pull_request
 

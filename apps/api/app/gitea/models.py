@@ -5,6 +5,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.scm.models import FileChange
+
 
 class GiteaUser(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -56,16 +58,8 @@ class GiteaPullRequest(BaseModel):
     labels: list[dict[str, Any]] = Field(default_factory=list)
 
 
-class GiteaFileChange(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    filename: str
-    status: str = "modified"
-    additions: int = 0
-    deletions: int = 0
-    changes: int = 0
-    patch: str | None = None
-    raw_url: str | None = None
+class GiteaFileChange(FileChange):
+    """File payload shared with GitHub-style APIs."""
 
 
 class GiteaCommit(BaseModel):

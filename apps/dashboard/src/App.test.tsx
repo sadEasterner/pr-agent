@@ -85,26 +85,14 @@ function mockJson(data: unknown) {
   }) as Promise<Response>;
 }
 
-function mockFetch(data: unknown) {
-  return vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
-    const url = typeof input === "string" ? input : input instanceof Request ? input.url : String(input);
-    if (url.includes("/api/auth/me")) {
-      return mockJson({ authenticated: true, username: "sadEasterner" });
-    }
-    if (url.includes("/api/auth/login")) {
-      return mockJson({ authenticated: true, username: "sadEasterner" });
-    }
-    return mockJson(data);
-  });
-}
-
 describe("dashboard", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
   it("renders navigation", async () => {
-    mockFetch({
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      mockJson({
         prs_reviewed: 0,
         prs_waiting_for_human_review: 0,
         high_risk_prs: 0,
@@ -123,13 +111,15 @@ describe("dashboard", () => {
         common_violated_rules: [],
         recurring_modules: [],
         over_time: [],
-    });
+      }) as unknown as Response,
+    );
     render(
       <MemoryRouter>
         <App />
       </MemoryRouter>,
     );
-    expect(await screen.findByText("Overview")).toBeInTheDocument();
+    expect(screen.getByText("Overview")).toBeInTheDocument();
+    expect(screen.getByText("Admin")).toBeInTheDocument();
     expect(screen.getByText("Pull Requests")).toBeInTheDocument();
     expect(screen.getByText("AI reviews are advisory. Humans control merge.")).toBeInTheDocument();
     expect(await screen.findByText("PRs reviewed")).toBeInTheDocument();
@@ -161,7 +151,7 @@ describe("dashboard", () => {
     expect(screen.getByText(/This is not approval/)).toBeInTheDocument();
     expect(screen.getByText(/Review #1 — SHA abc123de/)).toBeInTheDocument();
     expect(screen.getByText(/Review #2 — SHA def456ab/)).toBeInTheDocument();
-    expect(screen.getByText("Open in Gitea")).toBeInTheDocument();
+    expect(screen.getByText("Open pull request")).toBeInTheDocument();
   });
 
   it("loads settings policy", async () => {

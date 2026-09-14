@@ -36,22 +36,39 @@ def verify_webhook_signature(
     return False
 
 
-async def require_gitea_signature(request: Request, settings: Settings) -> bytes:
+async def require_webhook_signature(provider: str, request: Request, settings: Settings) -> bytes:
     body = await request.body()
     if len(body) > settings.max_request_bytes:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail="Webhook payload exceeds size limit",
         )
+    secret = settings.git_webhook_secret
+    if provider == "gitlab":
+        provided = request.headers.get("x-gitlab-token") or ""
+        if not secret or not hmac.compare_digest(
+            hashlib.sha256(secret.encode("utf-8")).digest(),
+            hashlib.sha256(provided.encode("utf-8")).digest(),
+        ):
+            logger.warning("webhook_signature_invalid", provider=provider)
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid webhook signature",
+            )
+        return body
     provided = (
-        request.headers.get("x-gitea-signature")
-        or request.headers.get("x-hub-signature-256")
+        request.headers.get("x-hub-signature-256")
+        or request.headers.get("x-gitea-signature")
         or request.headers.get("x-hub-signature")
     )
-    if not verify_webhook_signature(body, settings.gitea_webhook_secret, provided):
-        logger.warning("webhook_signature_invalid")
+    if not verify_webhook_signature(body, secret, provided):
+        logger.warning("webhook_signature_invalid", provider=provider)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid webhook signature",
         )
     return body
+
+
+async def require_gitea_signature(request: Request, settings: Settings) -> bytes:
+    return await require_webhook_signature("gitea", request, settings)

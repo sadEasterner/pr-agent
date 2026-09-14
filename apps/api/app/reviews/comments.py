@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from app.ai.schemas import AiReviewResult
-from app.gitea.service import PullRequestSnapshot
+from app.scm.models import PullRequestSnapshot
 from app.policy.engine import PolicyEngine
 from app.rules.engine import RulesResult
 
 
-def render_gitea_review(
+def render_review(
     snapshot: PullRequestSnapshot,
     rules_result: RulesResult,
     ai_result: AiReviewResult,
@@ -46,3 +46,6 @@ def _paragraph_from_findings(ai_result: AiReviewResult, rules_result: RulesResul
     if ai_result.findings:
         return " ".join(item.message for item in ai_result.findings[:3])
     return "The diff does not show a defect in the edited behavior."
+
+
+render_gitea_review = render_review
