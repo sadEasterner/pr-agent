@@ -41,6 +41,9 @@ def settings() -> Settings:
         openai_api_key="sk-test",
         config_dir=CONFIG_DIR,
         cors_origins="http://localhost:5173",
+        admin_username="test-admin",
+        admin_password="test-admin-password",
+        auth_session_secret="test-session-secret-not-for-production",
     )
 
 
@@ -263,6 +266,11 @@ async def app_client(
     application.dependency_overrides[get_settings] = lambda: settings
     transport = ASGITransport(app=application)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
+        login = await client.post(
+            "/api/auth/login",
+            json={"username": settings.admin_username, "password": settings.admin_password},
+        )
+        assert login.status_code == 200
         yield client, processor, fake_gitea, fake_ai
 
 

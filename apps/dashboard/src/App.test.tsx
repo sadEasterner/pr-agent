@@ -85,14 +85,26 @@ function mockJson(data: unknown) {
   }) as Promise<Response>;
 }
 
+function mockFetch(data: unknown) {
+  return vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+    const url = typeof input === "string" ? input : input instanceof Request ? input.url : String(input);
+    if (url.includes("/api/auth/me")) {
+      return mockJson({ authenticated: true, username: "sadEasterner" });
+    }
+    if (url.includes("/api/auth/login")) {
+      return mockJson({ authenticated: true, username: "sadEasterner" });
+    }
+    return mockJson(data);
+  });
+}
+
 describe("dashboard", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
   it("renders navigation", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      mockJson({
+    mockFetch({
         prs_reviewed: 0,
         prs_waiting_for_human_review: 0,
         high_risk_prs: 0,
@@ -111,14 +123,13 @@ describe("dashboard", () => {
         common_violated_rules: [],
         recurring_modules: [],
         over_time: [],
-      }) as unknown as Response,
-    );
+    });
     render(
       <MemoryRouter>
         <App />
       </MemoryRouter>,
     );
-    expect(screen.getByText("Overview")).toBeInTheDocument();
+    expect(await screen.findByText("Overview")).toBeInTheDocument();
     expect(screen.getByText("Pull Requests")).toBeInTheDocument();
     expect(screen.getByText("AI reviews are advisory. Humans control merge.")).toBeInTheDocument();
     expect(await screen.findByText("PRs reviewed")).toBeInTheDocument();

@@ -6,6 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.analytics import router as analytics_router
+from app.api.auth import router as auth_router
+from app.api.deps import require_admin
 from app.api.health import router as health_router
 from app.api.prs import router as prs_router
 from app.api.reviews import router as reviews_router
@@ -58,12 +60,15 @@ def create_app(*, start_workers: bool = True) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    application.state.settings = settings
     application.include_router(health_router)
     application.include_router(webhook_router)
+    application.include_router(auth_router)
     application.include_router(prs_router)
     application.include_router(reviews_router)
     application.include_router(analytics_router)
     application.include_router(settings_router)
+    application.middleware("http")(require_admin)
 
     @application.middleware("http")
     async def limit_request_size(request: Request, call_next):  # type: ignore[no-untyped-def]

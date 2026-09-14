@@ -38,6 +38,12 @@ class Settings(BaseSettings):
     ai_max_files: int = 40
     ai_chunk_size: int = 12_000
 
+    admin_username: str = ""
+    admin_password: str = ""
+    auth_session_secret: str = ""
+    auth_session_seconds: int = 60 * 60 * 24 * 7
+    auth_cookie_secure: bool = False
+
     config_dir: Path = Field(default_factory=lambda: Path(__file__).resolve().parents[3] / "config")
 
     @field_validator("database_url")
@@ -60,6 +66,10 @@ class Settings(BaseSettings):
             missing.append("GITEA_TOKEN")
         if not self.gitea_base_url or "example.com" in self.gitea_base_url:
             missing.append("GITEA_BASE_URL")
+        if not self.admin_username or not self.admin_password:
+            missing.append("ADMIN_USERNAME/ADMIN_PASSWORD")
+        if not self.auth_session_secret:
+            missing.append("AUTH_SESSION_SECRET")
         if missing:
             raise ValueError("Production requires " + ", ".join(missing))
         return self

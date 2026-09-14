@@ -10,15 +10,46 @@ import type {
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
-async function request<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`);
+export class ApiError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.headers);
+  if (init?.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    credentials: "include",
+    headers,
+  });
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
+    throw new ApiError(response.status, `Request failed: ${response.status}`);
+  }
+  if (response.status === 204) {
+    return undefined as T;
   }
   return (await response.json()) as T;
 }
 
+export type AuthStatus = {
+  authenticated: boolean;
+  username: string | null;
+};
+
 export const api = {
+  me: () => request<AuthStatus>("/api/auth/me"),
+  login: (username: string, password: string) =>
+    request<AuthStatus>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    }),
+  logout: () => request<AuthStatus>("/api/auth/logout", { method: "POST" }),
   summary: () => request<AnalyticsSummary>("/api/analytics/summary"),
   trends: () => request<AnalyticsTrends>("/api/analytics/trends"),
   findings: () => request<AnalyticsFindings>("/api/analytics/findings"),

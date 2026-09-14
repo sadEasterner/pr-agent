@@ -20,6 +20,8 @@ SENSITIVE_KEYS = {
     "webhook_secret",
     "gitea_webhook_secret",
     "password",
+    "admin_password",
+    "auth_session_secret",
     "secret",
     "database_url",
 }
