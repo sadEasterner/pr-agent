@@ -48,8 +48,7 @@ def render_pdf(report: PdfReportIn) -> bytes:
 
     pdf.set_title(_text(report.title)[:200])
     pdf.set_author("PR Manager")
-    buffer = pdf.output()
-    return bytes(buffer)
+    return bytes(pdf.output())
 
 
 class _ReportPdf(FPDF):

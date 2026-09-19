@@ -20,7 +20,12 @@ async def create_pdf(payload: PdfReportIn) -> Response:
     return Response(
         content=content,
         media_type="application/pdf",
-        headers={"Content-Disposition": disposition},
+        headers={
+            "Content-Disposition": disposition,
+            "Content-Length": str(len(content)),
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 

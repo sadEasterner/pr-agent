@@ -12,6 +12,8 @@ from app.ai.diff import prepare_diff_bundle
 from app.ai.reviewer import AiReviewer
 from app.config import Settings
 from app.db.models import PullRequest, WebhookEvent
+from app.gitea.client import GiteaClient
+from app.gitea.service import GiteaService
 from app.logging import get_logger
 from app.policy.engine import AutomationAction, PolicyEngine
 from app.reviews.comments import render_review
@@ -20,8 +22,6 @@ from app.rules.engine import RulesEngine
 from app.rules.loader import LoadedRules
 from app.runtime import get_runtime_controls
 from app.scm.base import ScmProvider
-from app.gitea.client import GiteaClient
-from app.gitea.service import GiteaService
 from app.webhooks.schemas import PullRequestEvent
 
 logger = get_logger(__name__)

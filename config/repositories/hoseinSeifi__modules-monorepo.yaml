@@ -1,5 +1,0 @@
-project_rules:
-  - "A pull request that changes apps/<name> must not change any other app, package, or file outside that folder."
-  - "A pull request that changes packages/<name> must not change any other package, app, or file outside that folder."
-  - "Review only the provided diff and the direct effect of those edits."
-  - "Do not suggest refactors, new architecture, extra modules, or unrelated cleanup."

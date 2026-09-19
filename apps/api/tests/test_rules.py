@@ -124,3 +124,6 @@ def test_path_rules_loaded() -> None:
     loaded = load_review_rules(Path(__file__).resolve().parents[3] / "config")
     assert "auth/**" in loaded.global_rules.path_rules
     assert loaded.global_rules.ai_review.minimum_confidence == 0.75
+    assert loaded.global_rules.automation.mode == "review_only"
+    assert "post_review" in loaded.global_rules.automation.allowed_actions
+    assert "merge_pr" in loaded.global_rules.automation.forbidden_actions

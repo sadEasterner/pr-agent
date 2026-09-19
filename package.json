@@ -1,7 +1,8 @@
 {
-  "name": "gitea-pr-manager",
+  "name": "pr-manager",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
   "description": "Pull request management and AI code-review for Gitea, GitHub, and GitLab",
   "packageManager": "pnpm@10.23.0",
   "scripts": {

@@ -9,12 +9,10 @@ permissions:
   contents: read
 
 jobs:
-  affected:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -24,8 +22,10 @@ jobs:
         with:
           python-version: "3.12"
       - run: pnpm install --frozen-lockfile
-      - run: uv sync --project apps/api --all-extras
-      - run: pnpm nx affected -t lint --base=origin/main
-      - run: pnpm nx affected -t typecheck --base=origin/main
-      - run: pnpm nx affected -t test --base=origin/main
-      - run: pnpm nx affected -t build --base=origin/main
+      - run: uv sync --project apps/api --all-extras --frozen
+      - run: pnpm nx run api:lint
+      - run: pnpm nx run api:test
+      - run: pnpm nx run dashboard:lint
+      - run: pnpm nx run dashboard:typecheck
+      - run: pnpm nx run dashboard:test
+      - run: pnpm nx run dashboard:build

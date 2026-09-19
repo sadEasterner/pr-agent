@@ -387,7 +387,7 @@ wheels = [
 ]
 
 [[package]]
-name = "gitea-pr-manager-api"
+name = "pr-manager-api"
 version = "1.0.0"
 source = { virtual = "." }
 dependencies = [

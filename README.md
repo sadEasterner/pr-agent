@@ -35,6 +35,10 @@ The AI is a reviewer. **It never merges, approves, closes, or pushes code.** Hum
 | [docs/PROVIDERS.md](docs/PROVIDERS.md) | Connect Gitea, GitHub, or GitLab |
 | [docs/DEPLOY.md](docs/DEPLOY.md) | Docker, production, secrets, TLS, reverse proxy |
 | [docs/ADDING-A-PROVIDER.md](docs/ADDING-A-PROVIDER.md) | Add Bitbucket or another host |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Local setup and pull requests |
+| [SECURITY.md](SECURITY.md) | Vulnerability reports |
+
+This project is licensed under the [MIT License](LICENSE).
 
 ## Quick start (local)
 
@@ -139,3 +143,6 @@ Set `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and `AUTH_SESSION_SECRET` in `.env`. Pro
 - Request bodies have a size cap
 
 See [docs/DEPLOY.md](docs/DEPLOY.md) before you publish a deployment.
+
+CI on GitHub Actions and Gitea Actions runs lint, tests, and the dashboard build. It does not deploy.
+

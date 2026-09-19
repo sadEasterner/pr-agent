@@ -19,13 +19,13 @@ export function SettingsPage() {
     <section className="space-y-6">
       <PageHeader
         title="Settings"
-        description="Automation policy is review-only. Merge and approve actions are forbidden. Turn AI review and PR comments on or off from the Admin page."
+        description="Review policy is advisory only. Merge and approve actions are forbidden. Turn AI review and PR comments on or off from the Admin page."
         onExport={() =>
           exportPdf({
             title: "Settings",
-            subtitle: "Current automation policy",
+            subtitle: "Current review policy",
             metrics: [
-              { label: "Automation mode", value: settings.automation_mode },
+              { label: "Review mode", value: settings.automation_mode },
               { label: "Merge authority", value: settings.merge_authority },
               { label: "AI enabled", value: settings.ai_enabled ? "On" : "Off" },
               { label: "PR comments", value: (settings.pr_comments_enabled ?? true) ? "On" : "Off" },
@@ -50,7 +50,7 @@ export function SettingsPage() {
       />
       <article className="animate-fade-up rounded-2xl border border-slate-200/80 bg-white p-6">
         <dl className="grid gap-4 md:grid-cols-2">
-          <Item label="Automation mode" value={settings.automation_mode} />
+          <Item label="Review mode" value={settings.automation_mode} />
           <Item label="Merge authority" value={settings.merge_authority} />
           <Item label="AI enabled" value={settings.ai_enabled ? "On" : "Off"} />
           <Item label="PR comments" value={(settings.pr_comments_enabled ?? true) ? "On" : "Off"} />

@@ -1,9 +1,8 @@
-from httpx import ASGITransport, AsyncClient
 import pytest
-
 from app.config import get_settings
 from app.db.session import get_session
 from app.main import create_app
+from httpx import ASGITransport, AsyncClient
 
 
 @pytest.mark.asyncio

@@ -1,8 +1,17 @@
-# Include inside the hosein.work server block, before location /.
-# Gitea webhook: https://hosein.work/pr-manager-api/webhooks/gitea
+# Example reverse-proxy snippet. Copy the location blocks into your TLS
+# virtual host. Point them at the ports published by docker-compose.prod.yml.
 
+# Dashboard (humans): https://pr-manager.example.com/
+# location / {
+#     proxy_pass http://127.0.0.1:8088;
+#     proxy_set_header Host $host;
+#     proxy_set_header X-Forwarded-For $remote_addr;
+#     proxy_set_header X-Forwarded-Proto $scheme;
+# }
+
+# API (webhooks and /api via the dashboard proxy, or a dedicated prefix):
 location /pr-manager-api/ {
-    proxy_pass http://127.0.0.1:8110/;
+    proxy_pass http://127.0.0.1:8000/;
     proxy_http_version 1.1;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;

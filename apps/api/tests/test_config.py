@@ -1,6 +1,5 @@
-from pydantic import ValidationError
-
 from app.config import Settings, get_settings
+from pydantic import ValidationError
 
 
 def test_production_requires_scm_secrets() -> None:

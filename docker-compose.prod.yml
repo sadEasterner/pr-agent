@@ -32,7 +32,7 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    image: pr-mangement-api:latest
+    image: pr-manager-api:latest
     restart: unless-stopped
     depends_on:
       postgres:
@@ -45,7 +45,7 @@ services:
       APP_PORT: 8000
       APP_ENV: production
     ports:
-      - "127.0.0.1:8110:8000"
+      - "127.0.0.1:8000:8000"
     logging: *default-logging
     security_opt:
       - no-new-privileges:true
@@ -66,13 +66,13 @@ services:
       dockerfile: apps/dashboard/Dockerfile
       args:
         VITE_API_BASE_URL: ""
-    image: pr-mangement-dashboard:latest
+    image: pr-manager-dashboard:latest
     restart: unless-stopped
     depends_on:
       api:
         condition: service_healthy
     ports:
-      - "8111:8080"
+      - "127.0.0.1:8088:8080"
     logging: *default-logging
     security_opt:
       - no-new-privileges:true

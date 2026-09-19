@@ -78,8 +78,8 @@ For a first local check, `docker compose up --build` is enough. Production shoul
 Confirm:
 
 ```bash
-curl -fsS http://127.0.0.1:8110/health
-curl -fsS http://127.0.0.1:8110/ready
+curl -fsS http://127.0.0.1:8000/health
+curl -fsS http://127.0.0.1:8000/ready
 ```
 
 `/health` is liveness. `/ready` checks the database and required Git-host config. AI is not required for readiness.
@@ -90,10 +90,10 @@ The API container runs `alembic upgrade head` before uvicorn. A failed migration
 
 Point HTTPS at:
 
-- Dashboard (humans): the dashboard container, e.g. port 8111
-- API (webhooks): `https://your.domain/pr-manager-api/` → `127.0.0.1:8110`
+- Dashboard (humans): the dashboard container, e.g. `127.0.0.1:8088`
+- API (webhooks): `https://pr-manager.example.com/pr-manager-api/` → `127.0.0.1:8000`
 
-Forward these headers through the proxy (see `docker/nginx/pr-manager.hosein.work.conf`):
+Forward these headers through the proxy (see `docker/nginx/reverse-proxy.conf.example`):
 
 - `X-Gitea-Event`, `X-Gitea-Signature`
 - `X-Hub-Signature-256`
@@ -121,6 +121,8 @@ If the dashboard shows a review but Gitea/GitHub/GitLab does not, PR comments ar
 - **Database:** named volume `postgres-data`. Back it up with `pg_dump`.
 - **Updates:** rebuild `api` and `dashboard`. Do not recreate Postgres unless you intend to wipe history.
 - **Admin toggles** survive container rebuilds; they live in Postgres.
+
+Production compose publishes the API on `127.0.0.1:8000` and the dashboard on `127.0.0.1:8088`. Put TLS in front of those ports. Do not expose Postgres.
 
 ## 7. What not to do
 

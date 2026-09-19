@@ -58,7 +58,18 @@ async def test_github_provider_fetch_snapshot(settings) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         path = request.url.path
         if path.endswith("/pulls/42/files"):
-            return httpx.Response(200, json=[{"filename": "app/main.py", "additions": 3, "deletions": 0, "status": "modified", "patch": "+x"}])
+            return httpx.Response(
+                200,
+                json=[
+                    {
+                        "filename": "app/main.py",
+                        "additions": 3,
+                        "deletions": 0,
+                        "status": "modified",
+                        "patch": "+x",
+                    }
+                ],
+            )
         if path.endswith("/pulls/42/commits"):
             return httpx.Response(200, json=[{"sha": "abc123"}])
         if path.endswith("/pulls/42") and request.headers.get("accept") == "application/vnd.github.diff":

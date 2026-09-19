@@ -5,7 +5,7 @@ from app.config import Settings, get_settings
 from app.jobs.queue import JobQueue
 from app.logging import get_logger
 from app.scm.base import SUPPORTED_PROVIDERS, normalize_provider
-from app.scm.events import PullRequestEvent, parse_webhook_event
+from app.scm.events import parse_webhook_event
 from app.webhooks.security import require_webhook_signature
 
 router = APIRouter(tags=["webhooks"])

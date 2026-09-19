@@ -8,8 +8,8 @@ from sqlalchemy.orm import selectinload
 
 from app.ai.schemas import AiReviewResult
 from app.db.models import Finding, PullRequest, Review, ReviewMetrics
-from app.scm.models import PullRequestSnapshot
 from app.rules.engine import RulesResult
+from app.scm.models import PullRequestSnapshot
 
 
 def _parse_dt(value: object) -> datetime | None:

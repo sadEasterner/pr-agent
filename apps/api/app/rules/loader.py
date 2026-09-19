@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 
 class LabelRule(BaseModel):
@@ -62,13 +62,16 @@ class AutomationConfig(BaseModel):
 
 
 class ReviewRulesConfig(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     pr_rules: PrRulesConfig = Field(default_factory=PrRulesConfig)
     ai_review: AiReviewConfig = Field(default_factory=AiReviewConfig)
     path_rules: dict[str, PathRuleConfig] = Field(default_factory=dict)
     project_rules: list[str] = Field(default_factory=list)
-    automation: AutomationConfig = Field(default_factory=AutomationConfig)
+    automation: AutomationConfig = Field(
+        default_factory=AutomationConfig,
+        validation_alias=AliasChoices("policy", "automation"),
+    )
 
 
 class RepositoryRulesConfig(BaseModel):

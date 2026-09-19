@@ -1,3 +1,6 @@
+# Default review policy. Edit this file for your organization.
+# Per-repo overrides live in config/repositories/{owner}__{repo}.yaml
+
 pr_rules:
   require_description: true
   min_description_length: 20
@@ -162,30 +165,6 @@ path_rules:
       - duplicate transactions
       - idempotency
       - authorization
-    check:
-      - authentication bypass
-      - token validation
-      - authorization
-      - permission checking
-      - session handling
-  "database/**":
-    check:
-      - unsafe queries
-      - transaction handling
-      - migration safety
-      - rollback safety
-  "**/migrations/**":
-    check:
-      - unsafe queries
-      - transaction handling
-      - migration safety
-      - rollback safety
-  "payments/**":
-    check:
-      - money rounding
-      - duplicate transactions
-      - idempotency
-      - authorization
 
 project_rules:
   - "A pull request that changes apps/<name> must not change any other app, package, or file outside that folder."
@@ -196,7 +175,8 @@ project_rules:
   - "Every endpoint must verify authorization."
   - "Internal IDs must not be exposed through public APIs."
 
-automation:
+# Advisory review policy. Merge, approve, close, and push cannot be enabled.
+policy:
   mode: review_only
   allowed_actions:
     - read_pr
