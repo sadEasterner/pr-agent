@@ -1,7 +1,9 @@
 import type { AnalyticsFindings, AnalyticsTrends } from "@gitea-pr-manager/shared-types";
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import { PageHeader } from "../components/PageHeader";
 import { AnimatedAreaChart, CHART, ChartCard, DualAreaChart } from "../components/charts";
+import { exportPdf } from "../lib/pdf";
 
 export function TrendsPage() {
   const [trends, setTrends] = useState<AnalyticsTrends | null>(null);
@@ -24,10 +26,38 @@ export function TrendsPage() {
 
   return (
     <section className="space-y-6">
-      <div className="animate-fade-up">
-        <h1 className="text-2xl font-semibold tracking-tight">Trends</h1>
-        <p className="mt-1 text-sm text-slate-500">Review throughput, size, merge time, and findings over time.</p>
-      </div>
+      <PageHeader
+        title="Trends"
+        description="Review throughput, size, merge time, and findings over time."
+        onExport={() =>
+          exportPdf({
+            title: "Trends",
+            subtitle: "Review throughput, size, merge time, and findings over time",
+            tables: [
+              {
+                title: "Reviews over time",
+                headers: ["Date", "Reviews"],
+                rows: trends.reviews_over_time.map((item) => [item.date, item.count]),
+              },
+              {
+                title: "PR size trend",
+                headers: ["Date", "Average lines"],
+                rows: trends.pr_size_trend.map((item) => [item.date, item.average_lines]),
+              },
+              {
+                title: "Merge time trend",
+                headers: ["Date", "Average seconds"],
+                rows: trends.merge_time_trend.map((item) => [item.date, item.average_seconds]),
+              },
+              {
+                title: "Findings over time",
+                headers: ["Date", "Severity", "Count"],
+                rows: findings.over_time.map((item) => [item.date, item.severity, item.count]),
+              },
+            ],
+          })
+        }
+      />
       <ChartCard title="Reviews and findings" hint="Daily volume of completed reviews versus new findings">
         <DualAreaChart
           data={combined}

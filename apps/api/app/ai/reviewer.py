@@ -144,7 +144,7 @@ class AiReviewer:
         return AiReviewResult(
             risk=risk,
             recommendation=recommendation,
-            summary="Deterministic rules completed. AI review was disabled.",
+            summary="good" if not findings else (findings[0].message or "good"),
             findings=findings,
         )
 

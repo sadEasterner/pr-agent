@@ -2,6 +2,7 @@ import { MetricCard } from "@gitea-pr-manager/ui";
 import type { AnalyticsFindings, AnalyticsSummary, AnalyticsTrends } from "@gitea-pr-manager/shared-types";
 import { useEffect, useState } from "react";
 import { api, formatDuration } from "../api";
+import { PageHeader } from "../components/PageHeader";
 import {
   AnimatedAreaChart,
   AnimatedBarChart,
@@ -10,6 +11,7 @@ import {
   ChartCard,
   severityFill,
 } from "../components/charts";
+import { exportPdf } from "../lib/pdf";
 
 export function OverviewPage() {
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
@@ -27,17 +29,59 @@ export function OverviewPage() {
       .catch((err: Error) => setError(err.message));
   }, []);
 
-  if (error) return <p className="text-red-700">Unable to load overview: {error}</p>;
-  if (!summary || !trends || !findings) return <p className="text-slate-500">Loading overview…</p>;
+  if (!summary || !trends || !findings) {
+    return (
+      <section className="space-y-8">
+        <PageHeader
+          title="Overview"
+          description="Engineering process metrics. AI recommendations never authorize a merge."
+        />
+        {error ? (
+          <p className="text-red-700">Unable to load overview: {error}</p>
+        ) : (
+          <p className="text-slate-500">Loading overview…</p>
+        )}
+      </section>
+    );
+  }
 
   return (
     <section className="space-y-8">
-      <div className="animate-fade-up">
-        <h1 className="text-2xl font-semibold tracking-tight">Overview</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Engineering process metrics. AI recommendations never authorize a merge.
-        </p>
-      </div>
+      <PageHeader
+        title="Overview"
+        description="Engineering process metrics. AI recommendations never authorize a merge."
+        onExport={() =>
+          exportPdf({
+            title: "Overview",
+            subtitle: "Engineering process metrics. AI recommendations never authorize a merge.",
+            metrics: [
+              { label: "PRs reviewed", value: summary.prs_reviewed },
+              { label: "Waiting for human review", value: summary.prs_waiting_for_human_review },
+              { label: "High-risk PRs", value: summary.high_risk_prs },
+              { label: "Average merge time", value: formatDuration(summary.average_merge_time_seconds) },
+              { label: "Average PR size", value: `${Math.round(summary.average_pr_size_lines)} lines` },
+              { label: "Findings this week", value: summary.findings_this_week },
+            ],
+            tables: [
+              {
+                title: "Findings by severity",
+                headers: ["Severity", "Count"],
+                rows: findings.by_severity.map((item) => [item.severity, item.count]),
+              },
+              {
+                title: "Findings by category",
+                headers: ["Category", "Count"],
+                rows: findings.by_category.map((item) => [item.category, item.count]),
+              },
+              {
+                title: "Risk distribution",
+                headers: ["Risk", "Count"],
+                rows: trends.risk_distribution.map((item) => [item.risk, item.count]),
+              },
+            ],
+          })
+        }
+      />
       <div className="grid gap-4 md:grid-cols-3">
         <MetricCard label="PRs reviewed" value={summary.prs_reviewed} />
         <MetricCard

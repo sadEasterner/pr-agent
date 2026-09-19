@@ -81,7 +81,8 @@ class GitLabProvider:
         )
         payload = commits.json()
         commit_payload = payload if isinstance(payload, list) else []
-        author = ((data.get("author") or {}).get("username")) or "unknown"
+        author_login = ((data.get("author") or {}).get("username")) or "unknown"
+        author_name = ((data.get("author") or {}).get("name") or author_login).strip()
         diff_refs = data.get("diff_refs") or {}
         sha = diff_refs.get("head_sha") or data.get("sha") or ""
         state = data.get("state") or "opened"
@@ -92,7 +93,8 @@ class GitLabProvider:
             number=number,
             title=data.get("title") or "",
             description=data.get("description") or "",
-            author=author,
+            author=author_login,
+            author_name=author_name,
             source_branch=data.get("source_branch") or "",
             target_branch=data.get("target_branch") or "",
             head_sha=sha,

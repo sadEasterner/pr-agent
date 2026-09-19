@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import type { RepositoryStats } from "@gitea-pr-manager/shared-types";
 import { api } from "../api";
+import { PageHeader } from "../components/PageHeader";
 import { AnimatedBarChart, CHART, ChartCard } from "../components/charts";
+import { exportPdf } from "../lib/pdf";
 
 export function RepositoriesPage() {
   const [items, setItems] = useState<RepositoryStats[]>([]);
@@ -19,10 +21,28 @@ export function RepositoriesPage() {
 
   return (
     <section className="space-y-6">
-      <div className="animate-fade-up">
-        <h1 className="text-2xl font-semibold tracking-tight">Repositories</h1>
-        <p className="mt-1 text-sm text-slate-500">Review volume and risk by repository.</p>
-      </div>
+      <PageHeader
+        title="Repositories"
+        description="Review volume and risk by repository."
+        onExport={() =>
+          exportPdf({
+            title: "Repositories",
+            subtitle: "Review volume and risk by repository",
+            tables: [
+              {
+                headers: ["Repository", "PRs", "Reviews", "Merged", "High risk"],
+                rows: items.map((item) => [
+                  item.repository,
+                  item.prs,
+                  item.reviews,
+                  item.merged,
+                  item.high_risk,
+                ]),
+              },
+            ],
+          })
+        }
+      />
       {error ? <p className="text-red-700">{error}</p> : null}
       <ChartCard title="Reviews by repository">
         <AnimatedBarChart data={chartData} xKey="repository" yKey="reviews" color={CHART.teal} />

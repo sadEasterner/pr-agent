@@ -5,6 +5,8 @@ import { RiskBadge } from "@gitea-pr-manager/ui";
 import type { Finding, PullRequestDetail } from "@gitea-pr-manager/shared-types";
 import { HUMAN_STATUS_LABEL } from "@gitea-pr-manager/shared-types";
 import { api, shortSha } from "../api";
+import { authorLabel } from "../lib/names";
+import { exportPdf } from "../lib/pdf";
 
 const SEVERITIES = ["critical", "high", "medium", "low"] as const;
 
@@ -43,17 +45,67 @@ export function PullRequestDetailPage() {
             </p>
             <h1 className="mt-1 text-2xl font-semibold">{item.title}</h1>
             <p className="mt-2 text-sm text-slate-600">
-              {item.author} · {item.source_branch} → {item.target_branch}
+              <Link
+                className="font-medium text-slate-900 hover:text-teal-700 hover:underline"
+                to={`/people/${encodeURIComponent(item.author)}`}
+              >
+                {authorLabel(item.author, item.author_name)}
+              </Link>{" "}
+              · {item.source_branch} → {item.target_branch}
             </p>
           </div>
-          <a
-            className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
-            href={item.gitea_url}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Open pull request
-          </a>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+              onClick={() =>
+                exportPdf({
+                  title: `#${item.number} ${item.title}`,
+                  subtitle: `${item.repository} · ${authorLabel(item.author, item.author_name)}`,
+                  metrics: [
+                    { label: "Author", value: authorLabel(item.author, item.author_name) },
+                    { label: "Risk", value: item.latest_risk ?? "—" },
+                    { label: "Review status", value: HUMAN_STATUS_LABEL[item.human_review_status] },
+                    { label: "Findings", value: latest?.findings.length ?? 0 },
+                    { label: "Review rounds", value: item.reviews.length },
+                  ],
+                  tables: [
+                    {
+                      title: "Latest findings",
+                      headers: ["Severity", "File", "Message", "Rule"],
+                      rows: (latest?.findings ?? []).map((finding) => [
+                        finding.severity,
+                        `${finding.file}${finding.line ? `:${finding.line}` : ""}`,
+                        finding.message,
+                        finding.rule || finding.category,
+                      ]),
+                    },
+                    {
+                      title: "Review history",
+                      headers: ["Round", "SHA", "Risk", "Recommendation", "Findings"],
+                      rows: item.reviews.map((review) => [
+                        review.iteration,
+                        shortSha(review.commit_sha),
+                        review.risk,
+                        review.recommendation,
+                        review.findings.length,
+                      ]),
+                    },
+                  ],
+                })
+              }
+            >
+              Export PDF
+            </button>
+            <a
+              className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+              href={item.gitea_url}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open pull request
+            </a>
+          </div>
         </div>
         <div className="mt-6 grid gap-4 md:grid-cols-4">
           <Info label="Latest SHA" value={shortSha(item.latest_sha)} />

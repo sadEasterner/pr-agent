@@ -33,6 +33,7 @@ class PullRequestSnapshot:
     title: str
     description: str
     author: str
+    author_name: str
     source_branch: str
     target_branch: str
     head_sha: str

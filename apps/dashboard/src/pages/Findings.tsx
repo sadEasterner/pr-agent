@@ -1,7 +1,9 @@
 import type { AnalyticsFindings } from "@gitea-pr-manager/shared-types";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
+import { PageHeader } from "../components/PageHeader";
 import { AnimatedBarChart, CHART, ChartCard, severityFill } from "../components/charts";
+import { exportPdf } from "../lib/pdf";
 
 export function FindingsPage() {
   const [data, setData] = useState<AnalyticsFindings | null>(null);
@@ -16,12 +18,38 @@ export function FindingsPage() {
 
   return (
     <section className="space-y-6">
-      <div className="animate-fade-up">
-        <h1 className="text-2xl font-semibold tracking-tight">Findings</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Pattern analysis across repositories. This is not a developer scoreboard.
-        </p>
-      </div>
+      <PageHeader
+        title="Findings"
+        description="Pattern analysis across repositories. This is not a developer scoreboard."
+        onExport={() =>
+          exportPdf({
+            title: "Findings",
+            subtitle: "Pattern analysis across repositories",
+            tables: [
+              {
+                title: "By severity",
+                headers: ["Severity", "Count"],
+                rows: data.by_severity.map((item) => [item.severity, item.count]),
+              },
+              {
+                title: "By category",
+                headers: ["Category", "Count"],
+                rows: data.by_category.map((item) => [item.category, item.count]),
+              },
+              {
+                title: "Common violated rules",
+                headers: ["Rule", "Count"],
+                rows: data.common_violated_rules.map((item) => [item.rule, item.count]),
+              },
+              {
+                title: "Recurring modules",
+                headers: ["Path", "Count"],
+                rows: data.recurring_modules.map((item) => [item.path, item.count]),
+              },
+            ],
+          })
+        }
+      />
       <div className="grid gap-6 lg:grid-cols-2">
         <ChartCard title="By severity">
           <AnimatedBarChart

@@ -3,6 +3,8 @@ import { Layout } from "./components/Layout";
 import { AdminPage } from "./pages/Admin";
 import { FindingsPage } from "./pages/Findings";
 import { OverviewPage } from "./pages/Overview";
+import { PeoplePage } from "./pages/People";
+import { PersonDetailPage } from "./pages/PersonDetail";
 import { PullRequestDetailPage } from "./pages/PullRequestDetail";
 import { PullRequestsPage } from "./pages/PullRequests";
 import { RepositoriesPage } from "./pages/Repositories";
@@ -16,6 +18,8 @@ export default function App() {
         <Route path="/" element={<OverviewPage />} />
         <Route path="/pull-requests" element={<PullRequestsPage />} />
         <Route path="/pull-requests/:owner/:repo/:number" element={<PullRequestDetailPage />} />
+        <Route path="/people" element={<PeoplePage />} />
+        <Route path="/people/:author" element={<PersonDetailPage />} />
         <Route path="/findings" element={<FindingsPage />} />
         <Route path="/repositories" element={<RepositoriesPage />} />
         <Route path="/trends" element={<TrendsPage />} />

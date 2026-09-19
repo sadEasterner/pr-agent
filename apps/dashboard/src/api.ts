@@ -3,6 +3,8 @@ import type {
   AnalyticsSummary,
   AnalyticsTrends,
   AppSettings,
+  AuthorDetail,
+  AuthorStats,
   PullRequestDetail,
   PullRequestSummary,
   RepositoryStats,
@@ -68,6 +70,8 @@ export const api = {
   trends: () => request<AnalyticsTrends>("/api/analytics/trends"),
   findings: () => request<AnalyticsFindings>("/api/analytics/findings"),
   repositories: () => request<RepositoryStats[]>("/api/analytics/repositories"),
+  authors: () => request<AuthorStats[]>("/api/analytics/authors"),
+  author: (author: string) => request<AuthorDetail>(`/api/analytics/authors/${encodeURIComponent(author)}`),
   pullRequests: (params?: Record<string, string>) => {
     const query = new URLSearchParams(params).toString();
     return request<PullRequestSummary[]>(`/api/prs${query ? `?${query}` : ""}`);

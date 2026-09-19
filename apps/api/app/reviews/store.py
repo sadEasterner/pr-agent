@@ -56,6 +56,7 @@ class ReviewStore:
                 number=snapshot.number,
                 title=snapshot.title,
                 author=snapshot.author,
+                author_name=snapshot.author_name or snapshot.author,
                 description=snapshot.description,
                 source_branch=snapshot.source_branch,
                 target_branch=snapshot.target_branch,
@@ -73,6 +74,7 @@ class ReviewStore:
         else:
             pull_request.title = snapshot.title
             pull_request.author = snapshot.author
+            pull_request.author_name = snapshot.author_name or snapshot.author
             pull_request.description = snapshot.description
             pull_request.source_branch = snapshot.source_branch
             pull_request.target_branch = snapshot.target_branch

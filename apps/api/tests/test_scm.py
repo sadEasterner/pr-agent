@@ -74,6 +74,8 @@ async def test_github_provider_fetch_snapshot(settings) -> None:
         github = GitHubProvider(settings, client=client)
         snapshot = await github.fetch_snapshot("acme/demo", 42)
         assert snapshot.head_sha == "abc123"
+        assert snapshot.author == "alice"
+        assert snapshot.author_name == "Alice Example"
         assert snapshot.files[0].filename == "app/main.py"
 
 
@@ -122,7 +124,7 @@ async def test_gitlab_provider_fetch_snapshot(settings) -> None:
                     "source_branch": "feature/users",
                     "target_branch": "main",
                     "sha": "abc123",
-                    "author": {"username": "alice"},
+                    "author": {"username": "alice", "name": "Alice Example"},
                 },
             )
         return httpx.Response(404, json={"message": path})
@@ -134,5 +136,6 @@ async def test_gitlab_provider_fetch_snapshot(settings) -> None:
         gitlab = GitLabProvider(settings, client=client)
         snapshot = await gitlab.fetch_snapshot("acme/demo", 42)
         assert snapshot.author == "alice"
+        assert snapshot.author_name == "Alice Example"
         assert snapshot.html_url.endswith("/merge_requests/42")
         assert snapshot.files[0].filename == "app/main.py"

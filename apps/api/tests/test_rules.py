@@ -23,6 +23,7 @@ def _snapshot(files: list[GiteaFileChange], description: str = "A complete descr
         title="Test",
         description=description,
         author="alice",
+        author_name="Alice Example",
         source_branch="feat",
         target_branch="main",
         head_sha="abc",

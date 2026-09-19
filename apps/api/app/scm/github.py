@@ -93,12 +93,21 @@ class GitHubProvider:
         head = data.get("head") or {}
         base = data.get("base") or {}
         user = data.get("user") or {}
+        author = user.get("login") or "unknown"
+        author_name = (user.get("name") or user.get("full_name") or "").strip()
+        if not author_name:
+            for commit in commit_payload:
+                commit_author = ((commit.get("commit") or {}).get("author") or {}).get("name")
+                if commit_author:
+                    author_name = str(commit_author).strip()
+                    break
         return PullRequestSnapshot(
             repository=repository,
             number=number,
             title=data.get("title") or "",
             description=data.get("body") or "",
-            author=user.get("login") or "unknown",
+            author=author,
+            author_name=author_name or author,
             source_branch=head.get("ref") or "",
             target_branch=base.get("ref") or "",
             head_sha=head.get("sha") or "",

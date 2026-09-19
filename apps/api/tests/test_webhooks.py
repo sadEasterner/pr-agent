@@ -73,7 +73,8 @@ async def test_valid_webhook_is_accepted(app_client) -> None:
     assert any(call[0] == "create_comment" for call in gitea.calls)
     assert "approved" not in gitea.comments[0]["body"].lower()
     assert "Merge authority" not in gitea.comments[0]["body"]
-    assert "Automated PR Review" in gitea.comments[0]["body"]
+    assert "Automated PR Review" not in gitea.comments[0]["body"]
+    assert "permission guard" in gitea.comments[0]["body"]
 
 
 @pytest.mark.asyncio

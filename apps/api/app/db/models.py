@@ -22,6 +22,7 @@ class PullRequest(Base, TimestampMixin):
     number: Mapped[int] = mapped_column(Integer, nullable=False)
     title: Mapped[str] = mapped_column(String(512), nullable=False)
     author: Mapped[str] = mapped_column(String(255), index=True, nullable=False)
+    author_name: Mapped[str] = mapped_column(String(255), default="", nullable=False)
     description: Mapped[str] = mapped_column(Text, default="", nullable=False)
     source_branch: Mapped[str] = mapped_column(String(255), nullable=False)
     target_branch: Mapped[str] = mapped_column(String(255), nullable=False)

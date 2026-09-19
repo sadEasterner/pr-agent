@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import type { AppSettings } from "@gitea-pr-manager/shared-types";
 import { api } from "../api";
+import { PageHeader } from "../components/PageHeader";
+import { exportPdf } from "../lib/pdf";
 
 export function SettingsPage() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -15,13 +17,37 @@ export function SettingsPage() {
 
   return (
     <section className="space-y-6">
-      <div className="animate-fade-up">
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Automation policy is review-only. Merge and approve actions are forbidden. Turn AI
-          review and PR comments on or off from the Admin page.
-        </p>
-      </div>
+      <PageHeader
+        title="Settings"
+        description="Automation policy is review-only. Merge and approve actions are forbidden. Turn AI review and PR comments on or off from the Admin page."
+        onExport={() =>
+          exportPdf({
+            title: "Settings",
+            subtitle: "Current automation policy",
+            metrics: [
+              { label: "Automation mode", value: settings.automation_mode },
+              { label: "Merge authority", value: settings.merge_authority },
+              { label: "AI enabled", value: settings.ai_enabled ? "On" : "Off" },
+              { label: "PR comments", value: (settings.pr_comments_enabled ?? true) ? "On" : "Off" },
+              { label: "AI provider", value: settings.ai_provider },
+              { label: "AI model", value: settings.ai_model },
+            ],
+            tables: [
+              {
+                title: "Allowed actions",
+                headers: ["Action"],
+                rows: settings.allowed_actions.map((item) => [item]),
+              },
+              {
+                title: "Forbidden actions",
+                headers: ["Action"],
+                rows: settings.forbidden_actions.map((item) => [item]),
+              },
+            ],
+            notes: settings.notes,
+          })
+        }
+      />
       <article className="animate-fade-up rounded-2xl border border-slate-200/80 bg-white p-6">
         <dl className="grid gap-4 md:grid-cols-2">
           <Item label="Automation mode" value={settings.automation_mode} />

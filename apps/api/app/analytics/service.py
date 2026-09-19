@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import Select, and_, func, select
+from sqlalchemy import Select, and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.elements import ColumnElement
@@ -43,7 +43,12 @@ class AnalyticsService:
         if repository:
             filters.append(PullRequest.repository == repository)
         if author:
-            filters.append(PullRequest.author == author)
+            filters.append(
+                or_(
+                    PullRequest.author.ilike(author),
+                    PullRequest.author_name.ilike(f"%{author}%"),
+                )
+            )
         since = _since(days)
         if since is not None:
             filters.append(PullRequest.created_at >= since)
@@ -242,6 +247,102 @@ class AnalyticsService:
             )
         return items
 
+    def _author_stats(self, author: str, display_name: str, pull_requests: list[PullRequest]) -> dict[str, Any]:
+        findings = 0
+        prs_with_mistakes = 0
+        changes_requested = 0
+        high_risk = 0
+        merged = 0
+        open_prs = 0
+        review_rounds = 0
+        categories: dict[str, int] = {}
+        severities: dict[str, int] = {}
+        for pull_request in pull_requests:
+            latest = pull_request.reviews[-1] if pull_request.reviews else None
+            latest_findings = list(latest.findings) if latest else []
+            review_rounds += len(pull_request.reviews)
+            if pull_request.status == "merged":
+                merged += 1
+            if pull_request.status == "open":
+                open_prs += 1
+            if pull_request.latest_risk in {"high", "critical"}:
+                high_risk += 1
+            if pull_request.human_review_status in {"changes_requested", "high_risk"} or latest_findings:
+                prs_with_mistakes += 1
+            if pull_request.human_review_status == "changes_requested":
+                changes_requested += 1
+            findings += len(latest_findings)
+            for finding in latest_findings:
+                categories[finding.category or "general"] = categories.get(finding.category or "general", 0) + 1
+                severities[finding.severity] = severities.get(finding.severity, 0) + 1
+        return {
+            "author": author,
+            "display_name": display_name or author,
+            "prs": len(pull_requests),
+            "open_prs": open_prs,
+            "merged": merged,
+            "high_risk": high_risk,
+            "prs_with_mistakes": prs_with_mistakes,
+            "findings": findings,
+            "changes_requested": changes_requested,
+            "review_rounds": review_rounds,
+            "by_category": [
+                {"category": name, "count": count}
+                for name, count in sorted(categories.items(), key=lambda item: item[1], reverse=True)
+            ],
+            "by_severity": [
+                {"severity": name, "count": count}
+                for name, count in sorted(severities.items(), key=lambda item: item[1], reverse=True)
+            ],
+        }
+
+    async def _load_prs_by_author(self) -> dict[str, list[PullRequest]]:
+        result = await self.session.execute(
+            select(PullRequest).options(
+                selectinload(PullRequest.reviews).selectinload(Review.findings),
+                selectinload(PullRequest.reviews).selectinload(Review.metrics),
+            )
+        )
+        grouped: dict[str, list[PullRequest]] = {}
+        for pull_request in result.scalars().unique().all():
+            grouped.setdefault(pull_request.author, []).append(pull_request)
+        return grouped
+
+    async def authors(self) -> list[dict[str, Any]]:
+        grouped = await self._load_prs_by_author()
+        items = [
+            self._author_stats(
+                author,
+                next((item.author_name for item in prs if item.author_name), author),
+                prs,
+            )
+            for author, prs in grouped.items()
+        ]
+        return sorted(items, key=lambda item: (-item["findings"], -item["prs"], item["display_name"].lower()))
+
+    async def author_detail(self, author: str) -> dict[str, Any] | None:
+        grouped = await self._load_prs_by_author()
+        match: list[PullRequest] | None = grouped.get(author)
+        if match is None:
+            lowered = author.lower()
+            for login, prs in grouped.items():
+                names = {login.lower(), *(item.author_name.lower() for item in prs if item.author_name)}
+                if lowered in names:
+                    author = login
+                    match = prs
+                    break
+        if not match:
+            return None
+        stats = self._author_stats(
+            author,
+            next((item.author_name for item in match if item.author_name), author),
+            match,
+        )
+        from app.api.schemas import pr_to_out
+
+        stats["pull_requests"] = [pr_to_out(item).model_dump(mode="json") for item in match]
+        return stats
+
     def _list_query(
         self,
         repository: str | None = None,
@@ -261,7 +362,12 @@ class AnalyticsService:
         if status:
             filters.append(PullRequest.human_review_status == status)
         if author:
-            filters.append(PullRequest.author == author)
+            filters.append(
+                or_(
+                    PullRequest.author.ilike(author),
+                    PullRequest.author_name.ilike(f"%{author}%"),
+                )
+            )
         if filters:
             stmt = stmt.where(and_(*filters))
         return stmt.order_by(PullRequest.updated_at.desc())

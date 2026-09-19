@@ -177,7 +177,7 @@ def sample_pr_payload(sha: str = "abc123") -> dict[str, Any]:
         "html_url": "https://gitea.test/acme/demo/pulls/42",
         "merged": False,
         "created_at": datetime.now(UTC).isoformat(),
-        "user": {"login": "alice"},
+        "user": {"login": "alice", "full_name": "Alice Example"},
         "head": {"ref": "feature/users", "sha": sha},
         "base": {"ref": "main", "sha": "base123"},
     }
@@ -286,6 +286,7 @@ async def seed_pr(session: AsyncSession, sha: str = "abc123") -> PullRequest:
         number=42,
         title="Add user endpoint",
         author="alice",
+        author_name="Alice Example",
         description="Meaningful description for the change.",
         source_branch="feature/users",
         target_branch="main",

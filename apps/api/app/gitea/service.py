@@ -32,12 +32,16 @@ class GiteaService:
         source = pull_request.head.ref if pull_request.head else ""
         target = pull_request.base.ref if pull_request.base else ""
         author = pull_request.user.login if pull_request.user else "unknown"
+        author_name = ""
+        if pull_request.user:
+            author_name = (pull_request.user.full_name or "").strip()
         return PullRequestSnapshot(
             repository=repository,
             number=number,
             title=pull_request.title,
             description=pull_request.body or "",
             author=author,
+            author_name=author_name or author,
             source_branch=source,
             target_branch=target,
             head_sha=head_sha,

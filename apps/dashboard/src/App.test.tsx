@@ -3,6 +3,8 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { vi } from "vitest";
 import App from "./App";
+import { PeoplePage } from "./pages/People";
+import { PersonDetailPage } from "./pages/PersonDetail";
 import { PullRequestsPage } from "./pages/PullRequests";
 import { PullRequestDetailPage } from "./pages/PullRequestDetail";
 import { SettingsPage } from "./pages/Settings";
@@ -13,6 +15,7 @@ const pr = {
   number: 42,
   title: "Add user endpoint",
   author: "alice",
+  author_name: "Alice Example",
   source_branch: "feat",
   target_branch: "main",
   gitea_url: "https://gitea.test/acme/demo/pulls/42",
@@ -118,9 +121,11 @@ describe("dashboard", () => {
         <App />
       </MemoryRouter>,
     );
-    expect(screen.getByText("Overview")).toBeInTheDocument();
-    expect(screen.getByText("Admin")).toBeInTheDocument();
-    expect(screen.getByText("Pull Requests")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Overview" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Admin" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "People" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Pull Requests" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Export PDF" })).toBeInTheDocument();
     expect(screen.getByText("AI reviews are advisory. Humans control merge.")).toBeInTheDocument();
     expect(await screen.findByText("PRs reviewed")).toBeInTheDocument();
   });
@@ -135,7 +140,9 @@ describe("dashboard", () => {
       </MemoryRouter>,
     );
     expect(await screen.findByText(/Add user endpoint/)).toBeInTheDocument();
+    expect(screen.getByText("Alice Example (@alice)")).toBeInTheDocument();
     expect(screen.getByText("READY FOR HUMAN REVIEW")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export PDF" })).toBeInTheDocument();
   });
 
   it("shows review history and human-control messaging", async () => {
@@ -148,6 +155,7 @@ describe("dashboard", () => {
       </MemoryRouter>,
     );
     expect(await screen.findByText("READY FOR HUMAN REVIEW")).toBeInTheDocument();
+    expect(screen.getByText("Alice Example (@alice)")).toBeInTheDocument();
     expect(screen.getByText(/This is not approval/)).toBeInTheDocument();
     expect(screen.getByText(/Review #1 — SHA abc123de/)).toBeInTheDocument();
     expect(screen.getByText(/Review #2 — SHA def456ab/)).toBeInTheDocument();
@@ -174,5 +182,65 @@ describe("dashboard", () => {
     expect(
       screen.getByText("The system never merges or approves pull requests."),
     ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export PDF" })).toBeInTheDocument();
+  });
+
+  it("shows author names and mistake counts on People", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      mockJson([
+        {
+          author: "alice",
+          display_name: "Alice Example",
+          prs: 4,
+          open_prs: 1,
+          merged: 3,
+          high_risk: 1,
+          prs_with_mistakes: 2,
+          findings: 5,
+          changes_requested: 1,
+          review_rounds: 7,
+          by_category: [{ category: "authorization", count: 3 }],
+          by_severity: [{ severity: "high", count: 2 }],
+        },
+      ]) as unknown as Response,
+    );
+    render(
+      <MemoryRouter>
+        <PeoplePage />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole("link", { name: "Alice Example (@alice)" })).toBeInTheDocument();
+    expect(screen.getByText("PRs with findings")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export PDF" })).toBeInTheDocument();
+  });
+
+  it("shows one person's pull request history", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      mockJson({
+        author: "alice",
+        display_name: "Alice Example",
+        prs: 1,
+        open_prs: 1,
+        merged: 0,
+        high_risk: 0,
+        prs_with_mistakes: 1,
+        findings: 1,
+        changes_requested: 1,
+        review_rounds: 2,
+        by_category: [{ category: "authorization", count: 1 }],
+        by_severity: [{ severity: "high", count: 1 }],
+        pull_requests: [pr],
+      }) as unknown as Response,
+    );
+    render(
+      <MemoryRouter initialEntries={["/people/alice"]}>
+        <Routes>
+          <Route path="/people/:author" element={<PersonDetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole("heading", { name: "Alice Example (@alice)" })).toBeInTheDocument();
+    expect(screen.getByText("PRs with findings")).toBeInTheDocument();
+    expect(screen.getByText(/Add user endpoint/)).toBeInTheDocument();
   });
 });

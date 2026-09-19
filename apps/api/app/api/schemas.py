@@ -46,6 +46,7 @@ class PullRequestOut(BaseModel):
     number: int
     title: str
     author: str
+    author_name: str = ""
     source_branch: str
     target_branch: str
     gitea_url: str
@@ -131,6 +132,7 @@ def pr_to_out(pull_request: Any) -> PullRequestOut:
         number=pull_request.number,
         title=pull_request.title,
         author=pull_request.author,
+        author_name=pull_request.author_name or pull_request.author,
         source_branch=pull_request.source_branch,
         target_branch=pull_request.target_branch,
         gitea_url=pull_request.gitea_url,

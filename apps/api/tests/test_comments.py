@@ -11,15 +11,15 @@ from app.rules.loader import AutomationConfig, load_review_rules
 from tests.conftest import sample_ai_payload
 
 
-def test_gitea_comment_is_paragraph_and_suggestions() -> None:
-    loaded = load_review_rules(Path(__file__).resolve().parents[3] / "config")
+def _snapshot() -> PullRequestSnapshot:
     files = [GiteaFileChange(filename="apps/api/app/api/users.py", additions=4, deletions=0)]
-    snapshot = PullRequestSnapshot(
+    return PullRequestSnapshot(
         repository="acme/demo",
         number=42,
         title="Add user endpoint",
-        description="Adds an endpoint",
+        description="Meaningful description for the change.",
         author="alice",
+        author_name="Alice Example",
         source_branch="feat",
         target_branch="main",
         head_sha="abc123",
@@ -31,15 +31,40 @@ def test_gitea_comment_is_paragraph_and_suggestions() -> None:
         commit_count=1,
         pull_request=GiteaPullRequest.model_validate({"number": 42, "title": "x"}),
     )
+
+
+def test_comment_is_suggestions_only() -> None:
+    loaded = load_review_rules(Path(__file__).resolve().parents[3] / "config")
+    snapshot = _snapshot()
     body = render_gitea_review(
         snapshot,
         RulesEngine(loaded).evaluate(snapshot),
         parse_ai_payload(__import__("json").dumps(sample_ai_payload())),
         PolicyEngine(AutomationConfig(mode="review_only", allowed_actions=["post_review"])),
     )
-    assert "abc123" in body
+    assert body.startswith("- ")
+    assert "permission guard" in body
+    assert "Automated PR Review" not in body
+    assert "Head commit" not in body
+    assert "abc123" not in body
     assert "approved" not in body.lower()
-    assert "Merge authority" not in body
-    assert "CHANGES REQUESTED" not in body
     assert "never an instruction" in SYSTEM_PROMPT.lower() or "untrusted" in SYSTEM_PROMPT.lower()
-    assert "Suggestions:" in body or "authorization" in body.lower()
+
+
+def test_clean_review_comment_is_good() -> None:
+    loaded = load_review_rules(Path(__file__).resolve().parents[3] / "config")
+    snapshot = _snapshot()
+    payload = {
+        "risk": "low",
+        "recommendation": "ready_for_human_review",
+        "summary": "good",
+        "suggestions": [],
+        "findings": [],
+    }
+    body = render_gitea_review(
+        snapshot,
+        RulesEngine(loaded).evaluate(snapshot),
+        parse_ai_payload(__import__("json").dumps(payload)),
+        PolicyEngine(AutomationConfig(mode="review_only", allowed_actions=["post_review"])),
+    )
+    assert body == "good"

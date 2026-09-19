@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { RiskBadge, StatusBadge } from "@gitea-pr-manager/ui";
-import type { PullRequestSummary } from "@gitea-pr-manager/shared-types";
+import { HUMAN_STATUS_LABEL, type PullRequestSummary } from "@gitea-pr-manager/shared-types";
 import { api } from "../api";
+import { PageHeader } from "../components/PageHeader";
+import { authorLabel } from "../lib/names";
+import { exportPdf } from "../lib/pdf";
 
 export function PullRequestsPage() {
   const [items, setItems] = useState<PullRequestSummary[]>([]);
@@ -32,12 +35,42 @@ export function PullRequestsPage() {
 
   return (
     <section className="space-y-6">
-      <div className="animate-fade-up">
-        <h1 className="text-2xl font-semibold tracking-tight">Pull Requests</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Review status is an AI recommendation, not an approval.
-        </p>
-      </div>
+      <PageHeader
+        title="Pull Requests"
+        description="Review status is an AI recommendation, not an approval."
+        onExport={() =>
+          exportPdf({
+            title: "Pull Requests",
+            subtitle: "Current filtered list of reviewed pull requests",
+            tables: [
+              {
+                headers: [
+                  "PR",
+                  "Repository",
+                  "Author",
+                  "Login",
+                  "Risk",
+                  "Findings",
+                  "Recommendation",
+                  "Review status",
+                  "Updated",
+                ],
+                rows: items.map((item) => [
+                  `#${item.number} ${item.title}`,
+                  item.repository,
+                  item.author_name || item.author,
+                  item.author,
+                  item.latest_risk ?? "—",
+                  item.findings_count,
+                  item.latest_recommendation ?? "—",
+                  HUMAN_STATUS_LABEL[item.human_review_status] ?? item.human_review_status,
+                  new Date(item.updated_at).toLocaleString(),
+                ]),
+              },
+            ],
+          })
+        }
+      />
       <div className="grid gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 md:grid-cols-5">
         <Filter
           label="Repository"
@@ -61,6 +94,7 @@ export function PullRequestsPage() {
           Author
           <input
             className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-900 outline-none transition focus:border-teal-600 focus:bg-white"
+            placeholder="Name or login"
             value={filters.author}
             onChange={(event) => setFilters((current) => ({ ...current, author: event.target.value }))}
           />
@@ -99,7 +133,14 @@ export function PullRequestsPage() {
                   </Link>
                 </td>
                 <td className="px-4 py-3 text-slate-600">{item.repository}</td>
-                <td className="px-4 py-3">{item.author}</td>
+                <td className="px-4 py-3">
+                  <Link
+                    className="text-slate-900 hover:text-teal-700 hover:underline"
+                    to={`/people/${encodeURIComponent(item.author)}`}
+                  >
+                    {authorLabel(item.author, item.author_name)}
+                  </Link>
+                </td>
                 <td className="px-4 py-3">
                   <RiskBadge risk={item.latest_risk} />
                 </td>

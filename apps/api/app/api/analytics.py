@@ -41,6 +41,19 @@ async def repositories(session: AsyncSession = Depends(get_session)) -> list[dic
     return await AnalyticsService(session).repositories()
 
 
+@router.get("/authors")
+async def authors(session: AsyncSession = Depends(get_session)) -> list[dict[str, Any]]:
+    return await AnalyticsService(session).authors()
+
+
+@router.get("/authors/{author}")
+async def author_detail(author: str, session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+    item = await AnalyticsService(session).author_detail(author)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Author not found")
+    return item
+
+
 @router.get("/prs", response_model=list[PullRequestOut])
 async def analytics_prs(
     repository: str | None = None,

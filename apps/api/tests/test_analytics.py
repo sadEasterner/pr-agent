@@ -31,6 +31,16 @@ async def test_analytics_summary_and_findings(app_client, session) -> None:
     assert trends.status_code == 200
     assert "reviews_over_time" in trends.json()
 
+    authors = await client.get("/api/analytics/authors")
+    assert authors.status_code == 200
+    assert authors.json()[0]["author"] == "alice"
+    assert authors.json()[0]["display_name"] == "Alice Example"
+    assert authors.json()[0]["findings"] >= 1
+    person = await client.get("/api/analytics/authors/alice")
+    assert person.status_code == 200
+    assert person.json()["prs"] == 1
+    assert person.json()["pull_requests"][0]["author_name"] == "Alice Example"
+
 
 @pytest.mark.asyncio
 async def test_pr_list_filters(app_client, session) -> None:

@@ -16,11 +16,12 @@ Workspace isolation:
 - If the diff is under apps/<name>, it must not include other apps, packages, or files outside that folder.
 - If the diff is under packages/<name>, it must not include other packages, apps, or files outside that folder.
 
-Write summary as one paragraph: what the diff actually changes, the effect of those edits,
-and what must be fixed if something is wrong. Do not write a feature recap that asks for a rewrite.
+Write summary as "good" when the diff has no defect.
+Do not narrate what the diff changes, bump versions, CSS tweaks, or workspace isolation when it already holds.
+Do not write a recap, feature summary, or "no defects are introduced" paragraph.
 
-suggestions must be concrete fixes for defects in the diff, each pointing at a file when possible.
-If nothing is wrong, use an empty suggestions list.
+suggestions must be concrete fixes for defects in the changed lines, each pointing at a file when possible.
+If nothing is wrong, use an empty suggestions list and summary "good".
 
 Do not comment on formatting, whitespace, naming preferences, generated code, or lock files.
 
@@ -89,7 +90,7 @@ Respond with JSON only, using exactly these keys:
 {
   "risk": "low|medium|high|critical",
   "recommendation": "ready_for_human_review|changes_requested|high_risk|unable_to_review",
-  "summary": "one paragraph about the actual diff, its effect, and what must be fixed",
+  "summary": "good",
   "suggestions": ["concrete fix in a changed file"],
   "findings": [
     {
@@ -104,6 +105,6 @@ Respond with JSON only, using exactly these keys:
     }
   ]
 }
-summary must be a paragraph, not a title. Do not suggest a refactor.
+summary is "good" when nothing is wrong. If something is wrong, one short sentence naming the defect only — not a recap of the diff.
 Every finding MUST include message and confidence (0 to 1). Include risk at the top level.
 """

@@ -123,5 +123,5 @@ async def test_admin_can_disable_ai_review(app_client, fake_ai, settings) -> Non
     await processor.process(GiteaWebhookEvent.model_validate(webhook_payload("opened", "abc123")))
     detail = await client.get("/api/prs/acme/demo/42")
     assert detail.status_code == 200
-    assert "AI review was disabled" in detail.json()["reviews"][0]["summary"]
     assert fake_ai.prompts == []
+    assert detail.json()["reviews"][0]["summary"] == "good"

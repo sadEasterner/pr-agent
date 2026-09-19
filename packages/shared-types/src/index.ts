@@ -53,6 +53,7 @@ export interface PullRequestSummary {
   number: number;
   title: string;
   author: string;
+  author_name?: string;
   source_branch: string;
   target_branch: string;
   gitea_url: string;
@@ -101,6 +102,25 @@ export interface AnalyticsFindings {
   common_violated_rules: Array<{ rule: string; count: number }>;
   recurring_modules: Array<{ path: string; count: number }>;
   over_time: Array<{ date: string; severity: string; count: number }>;
+}
+
+export interface AuthorStats {
+  author: string;
+  display_name: string;
+  prs: number;
+  open_prs: number;
+  merged: number;
+  high_risk: number;
+  prs_with_mistakes: number;
+  findings: number;
+  changes_requested: number;
+  review_rounds: number;
+  by_category: Array<{ category: string; count: number }>;
+  by_severity: Array<{ severity: string; count: number }>;
+}
+
+export interface AuthorDetail extends AuthorStats {
+  pull_requests: PullRequestSummary[];
 }
 
 export interface RepositoryStats {

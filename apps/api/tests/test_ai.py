@@ -36,6 +36,7 @@ def _snapshot() -> PullRequestSnapshot:
         title=pr.title,
         description=pr.body or "",
         author="mallory",
+        author_name="Mallory",
         source_branch="feat",
         target_branch="main",
         head_sha="inj123",
