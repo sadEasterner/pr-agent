@@ -10,7 +10,7 @@ import type {
   RepositoryStats,
 } from "@gitea-pr-manager/shared-types";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
+export const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
 export class ApiError extends Error {
   status: number;

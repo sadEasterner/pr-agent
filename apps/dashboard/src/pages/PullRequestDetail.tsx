@@ -5,6 +5,7 @@ import { RiskBadge } from "@gitea-pr-manager/ui";
 import type { Finding, PullRequestDetail } from "@gitea-pr-manager/shared-types";
 import { HUMAN_STATUS_LABEL } from "@gitea-pr-manager/shared-types";
 import { api, shortSha } from "../api";
+import { ExportPdfButton } from "../components/PageHeader";
 import { authorLabel } from "../lib/names";
 import { exportPdf } from "../lib/pdf";
 
@@ -55,10 +56,9 @@ export function PullRequestDetailPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-              onClick={() =>
+            <ExportPdfButton
+              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              onExport={() =>
                 exportPdf({
                   title: `#${item.number} ${item.title}`,
                   subtitle: `${item.repository} · ${authorLabel(item.author, item.author_name)}`,
@@ -94,9 +94,7 @@ export function PullRequestDetailPage() {
                   ],
                 })
               }
-            >
-              Export PDF
-            </button>
+            />
             <a
               className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
               href={item.gitea_url}

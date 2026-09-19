@@ -157,3 +157,22 @@ def pr_to_detail(pull_request: Any) -> PullRequestDetailOut:
         description=pull_request.description,
         reviews=[review_to_out(review, index + 1) for index, review in enumerate(pull_request.reviews)],
     )
+
+
+class PdfMetricIn(BaseModel):
+    label: str
+    value: str | int | float
+
+
+class PdfTableIn(BaseModel):
+    title: str | None = None
+    headers: list[str] = Field(default_factory=list)
+    rows: list[list[str | int | float]] = Field(default_factory=list)
+
+
+class PdfReportIn(BaseModel):
+    title: str
+    subtitle: str | None = None
+    metrics: list[PdfMetricIn] = Field(default_factory=list)
+    tables: list[PdfTableIn] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)

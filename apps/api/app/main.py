@@ -15,6 +15,7 @@ from app.api.reviews import router as reviews_router
 from app.api.settings import router as settings_router
 from app.config import get_settings
 from app.db.session import SessionLocal, engine
+from app.exports.router import router as exports_router
 from app.jobs.processor import ReviewProcessor
 from app.jobs.queue import JobQueue
 from app.logging import configure_logging, get_logger
@@ -70,6 +71,7 @@ def create_app(*, start_workers: bool = True) -> FastAPI:
     application.include_router(prs_router)
     application.include_router(reviews_router)
     application.include_router(analytics_router)
+    application.include_router(exports_router)
     application.include_router(settings_router)
     application.middleware("http")(require_admin)
 
