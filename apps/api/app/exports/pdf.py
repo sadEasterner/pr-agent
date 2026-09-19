@@ -71,6 +71,8 @@ class _ReportPdf(FPDF):
 
 
 def _text(value: object) -> str:
+    if value is None:
+        return ""
     text = str(value).replace("\r\n", "\n").replace("\r", "\n")
     if len(text) > MAX_CELL:
         return f"{text[: MAX_CELL - 1]}…"

@@ -8,22 +8,8 @@ describe("exportPdf", () => {
     vi.restoreAllMocks();
   });
 
-  it("previews the PDF in an HTML tab instead of opening the blob directly", async () => {
-    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
-    const previewDoc = {
-      title: "",
-      body: { innerHTML: "" },
-      open: vi.fn(),
-      write: vi.fn(),
-      close: vi.fn(),
-    };
-    const preview = {
-      closed: false,
-      document: previewDoc,
-      addEventListener: vi.fn(),
-      close: vi.fn(),
-    };
-    const open = vi.fn(() => preview);
+  it("downloads a PDF without opening a blob tab", async () => {
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
     const fetchMock = vi.fn(
       async () =>
         new Response("%PDF-1.3\n%%EOF\n", {
@@ -31,38 +17,23 @@ describe("exportPdf", () => {
           headers: { "Content-Type": "application/pdf" },
         }),
     );
-    vi.stubGlobal("open", open);
     vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("open", vi.fn());
     vi.stubGlobal("URL", {
       ...URL,
       createObjectURL: vi.fn(() => "blob:http://localhost/pdf"),
       revokeObjectURL: vi.fn(),
     });
 
-    await exportPdf({ title: "Overview" });
+    await exportPdf({ title: "People", tables: [{ headers: ["Name"], rows: [[null as unknown as string]] }] });
 
-    expect(open).toHaveBeenCalledWith("about:blank", "_blank");
+    expect(window.open).not.toHaveBeenCalled();
     expect(fetchMock).toHaveBeenCalled();
-    expect(previewDoc.write).toHaveBeenCalled();
-    const html = String(previewDoc.write.mock.calls[0][0]);
-    expect(html).toContain("<iframe");
-    expect(html).toContain('src="blob:http://localhost/pdf"');
-    expect(html).toContain("Download PDF");
-    expect(open.mock.invocationCallOrder[0]).toBeLessThan(fetchMock.mock.invocationCallOrder[0]);
+    expect(click).toHaveBeenCalled();
   });
 
   it("rejects non-PDF responses", async () => {
-    const preview = {
-      closed: false,
-      document: { title: "", body: { innerHTML: "" }, open: vi.fn(), write: vi.fn(), close: vi.fn() },
-      addEventListener: vi.fn(),
-      close: vi.fn(),
-    };
-    vi.stubGlobal("open", vi.fn(() => preview));
     vi.stubGlobal("fetch", vi.fn(async () => new Response("<html>nope</html>", { status: 200 })));
-
     await expect(exportPdf({ title: "Overview" })).rejects.toThrow("Server did not return a PDF");
-    expect(preview.close).toHaveBeenCalled();
-    expect(preview.document.write).not.toHaveBeenCalled();
   });
 });

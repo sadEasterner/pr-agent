@@ -167,7 +167,7 @@ class PdfMetricIn(BaseModel):
 class PdfTableIn(BaseModel):
     title: str | None = None
     headers: list[str] = Field(default_factory=list)
-    rows: list[list[str | int | float]] = Field(default_factory=list)
+    rows: list[list[str | int | float | None]] = Field(default_factory=list)
 
 
 class PdfReportIn(BaseModel):

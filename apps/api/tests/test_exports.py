@@ -84,3 +84,14 @@ async def test_export_pdf_handles_wide_tables(app_client) -> None:
     assert response.status_code == 200
     assert response.content.startswith(b"%PDF")
     assert b"%%EOF" in response.content
+
+
+@pytest.mark.asyncio
+async def test_export_pdf_accepts_null_cells(app_client) -> None:
+    client, *_ = app_client
+    response = await client.post(
+        "/api/exports/pdf",
+        json={"title": "People", "tables": [{"headers": ["Name", "Login"], "rows": [[None, "alice"]]}]},
+    )
+    assert response.status_code == 200
+    assert response.content.startswith(b"%PDF")
