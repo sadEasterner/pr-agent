@@ -18,6 +18,7 @@ from app.db.session import SessionLocal, engine
 from app.exports.router import router as exports_router
 from app.jobs.processor import ReviewProcessor
 from app.jobs.queue import JobQueue
+from app.jobs.sync import PullRequestSync, gitea_client_from_scm
 from app.logging import configure_logging, get_logger
 from app.rules.loader import load_review_rules
 from app.scm.factory import create_scm_provider
@@ -39,10 +40,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.processor = processor
     app.state.scm = scm
     await queue.start()
+    syncer: PullRequestSync | None = None
+    gitea = gitea_client_from_scm(scm)
+    if gitea is not None:
+        syncer = PullRequestSync(settings, SessionLocal, queue, gitea)
+        await syncer.start()
     logger.info("application_started", env=settings.app_env, scm_provider=settings.git_provider)
     try:
         yield
     finally:
+        if syncer is not None:
+            await syncer.stop()
         await queue.stop()
         await scm.close()
         await engine.dispose()

@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     scm_token: str = ""
     scm_webhook_secret: str = ""
     scm_api_timeout_seconds: float = 30.0
+    scm_sync_repositories: str = ""
+    scm_sync_interval_seconds: float = 60.0
 
     ai_enabled: bool = False
     ai_provider: str = "openai"
@@ -84,6 +86,10 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         return [item.strip() for item in self.cors_origins.split(",") if item.strip()]
+
+    @property
+    def scm_sync_repository_list(self) -> list[str]:
+        return [item.strip() for item in self.scm_sync_repositories.split(",") if item.strip()]
 
     @property
     def git_provider(self) -> str:

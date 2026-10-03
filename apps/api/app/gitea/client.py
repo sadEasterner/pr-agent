@@ -85,6 +85,14 @@ class GiteaClient:
         response = await self._request("GET", path)
         return GiteaRepository.model_validate(response.json())
 
+    async def list_open_pulls(self, repository: str) -> list[GiteaPullRequest]:
+        path = f"{self._owner_repo_path(repository)}/pulls"
+        response = await self._request("GET", path, params={"state": "open", "limit": 50})
+        payload = response.json()
+        if not isinstance(payload, list):
+            return []
+        return [GiteaPullRequest.model_validate(item) for item in payload]
+
     async def get_pull_request(self, repository: str, number: int) -> GiteaPullRequest:
         path = f"{self._owner_repo_path(repository)}/pulls/{number}"
         response = await self._request("GET", path)
