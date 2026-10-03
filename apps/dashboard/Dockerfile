@@ -25,10 +25,11 @@ FROM nginx:1.27-alpine AS runtime
 
 RUN addgroup -S appuser && adduser -S -G appuser appuser
 
-COPY docker/nginx/dashboard.conf /etc/nginx/conf.d/default.conf
+COPY --chmod=644 docker/nginx/dashboard.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/apps/dashboard/dist /usr/share/nginx/html
 
-RUN chown -R appuser:appuser /usr/share/nginx/html /var/cache/nginx /var/run /var/log/nginx \
+RUN chmod 644 /etc/nginx/conf.d/default.conf \
+    && chown -R appuser:appuser /usr/share/nginx/html /var/cache/nginx /var/run /var/log/nginx /etc/nginx/conf.d \
     && touch /var/run/nginx.pid \
     && chown appuser:appuser /var/run/nginx.pid
 
