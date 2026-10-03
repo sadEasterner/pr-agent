@@ -8,7 +8,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["IBM Plex Sans", "Segoe UI", "sans-serif"],
+        sans: ["Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
       },
       keyframes: {
         "fade-up": {
