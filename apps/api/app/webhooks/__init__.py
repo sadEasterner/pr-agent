@@ -57,6 +57,11 @@ async def ingest_webhook(provider: str, request: Request, settings: Settings) ->
     if host not in SUPPORTED_PROVIDERS:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown Git host")
     body = await require_webhook_signature(host, request, settings)
+    event_name = _event_name(host, request)
+    if event_name and event_name not in PULL_EVENTS:
+        logger.info("webhook_ignored_event", provider=host, webhook_event=event_name)
+        return {"status": "ignored"}
+
     try:
         payload = parse_webhook_event(host, body)
     except (ValidationError, ValueError, TypeError, KeyError) as exc:
@@ -65,11 +70,6 @@ async def ingest_webhook(provider: str, request: Request, settings: Settings) ->
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Malformed webhook payload",
         ) from exc
-
-    event_name = _event_name(host, request)
-    if event_name and event_name not in PULL_EVENTS:
-        logger.info("webhook_ignored_event", provider=host, event=event_name)
-        return {"status": "ignored"}
 
     if payload.event_type not in REVIEW_ACTIONS and payload.action not in REVIEW_ACTIONS:
         logger.info("webhook_ignored_action", provider=host, action=payload.action)

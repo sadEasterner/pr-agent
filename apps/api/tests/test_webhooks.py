@@ -78,6 +78,24 @@ async def test_valid_webhook_is_accepted(app_client) -> None:
 
 
 @pytest.mark.asyncio
+async def test_push_webhook_is_ignored(app_client) -> None:
+    client, _processor, gitea, _ai = app_client
+    body = json.dumps({"ref": "refs/heads/main", "commits": []}).encode()
+    response = await client.post(
+        "/webhooks/gitea",
+        content=body,
+        headers={
+            "X-Gitea-Signature": sign(body),
+            "X-Gitea-Event": "push",
+            "Content-Type": "application/json",
+        },
+    )
+    assert response.status_code == 202
+    assert response.json() == {"status": "ignored"}
+    assert not any(call[0] == "create_comment" for call in gitea.calls)
+
+
+@pytest.mark.asyncio
 async def test_closed_webhook_is_ignored(app_client) -> None:
     client, _processor, gitea, _ai = app_client
     body = json.dumps(webhook_payload("closed")).encode()
