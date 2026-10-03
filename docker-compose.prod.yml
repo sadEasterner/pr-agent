@@ -45,7 +45,7 @@ services:
       APP_PORT: 8000
       APP_ENV: production
     ports:
-      - "127.0.0.1:8000:8000"
+      - "${API_PUBLISH:-127.0.0.1:8110}:8000"
     logging: *default-logging
     security_opt:
       - no-new-privileges:true
@@ -72,7 +72,7 @@ services:
       api:
         condition: service_healthy
     ports:
-      - "127.0.0.1:8088:8080"
+      - "${DASHBOARD_PUBLISH:-8111}:8080"
     logging: *default-logging
     security_opt:
       - no-new-privileges:true
